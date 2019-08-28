@@ -41,6 +41,8 @@ namespace Microsoft.Xna.Framework
 		private static int RetinaWidth;
 		private static int RetinaHeight;
 
+		private static string ForcedGLDevice;
+
 		#endregion
 
 		#region Game Objects
@@ -190,16 +192,15 @@ namespace Microsoft.Xna.Framework
 
 		private static bool PrepareVKAttributes()
 		{
-			// Who will write the VulkanDevice.. will it be YOU?
+			if (string.IsNullOrEmpty(ForcedGLDevice) || ForcedGLDevice == "VulkanDevice")
+			{
+				return SDL.SDL_Vulkan_LoadLibrary(null) == 0;
+			}
 			return false;
 		}
 
 		private static bool PrepareGLAttributes()
 		{
-			/* TODO: For platforms not using OpenGL (Vulkan/Metal),
-			 * return false to avoid OpenGL WSI calls.
-			 */
-
 			// GLContext environment variables
 			bool forceES3 = Environment.GetEnvironmentVariable(
 				"FNA_OPENGL_FORCE_ES3"
@@ -322,7 +323,6 @@ namespace Microsoft.Xna.Framework
 
 		public static GameWindow CreateWindow()
 		{
-
 			// Set and initialize the SDL2 window
 			SDL.SDL_WindowFlags initFlags = (
 				SDL.SDL_WindowFlags.SDL_WINDOW_HIDDEN |
@@ -330,9 +330,13 @@ namespace Microsoft.Xna.Framework
 				SDL.SDL_WindowFlags.SDL_WINDOW_MOUSE_FOCUS
 			);
 
+			// Did the user request a specific GLDevice?
+			ForcedGLDevice = Environment.GetEnvironmentVariable("FNA_GRAPHICS_FORCE_GLDEVICE");
+
 			bool vulkan = false, opengl = false;
 			if (vulkan = PrepareVKAttributes())
 			{
+				ForcedGLDevice = "VulkanDevice"; // FIXME: hack
 				initFlags |= SDL.SDL_WindowFlags.SDL_WINDOW_VULKAN;
 			}
 			else if (opengl = PrepareGLAttributes())
@@ -1141,14 +1145,18 @@ namespace Microsoft.Xna.Framework
 			PresentationParameters presentationParameters,
 			GraphicsAdapter adapter
 		) {
-			// This loads the OpenGL entry points.
-			string glDevice = Environment.GetEnvironmentVariable("FNA_GRAPHICS_FORCE_GLDEVICE");
-			if (glDevice == "ModernGLDevice")
+			// This loads the OpenGL / Vulkan entry points.
+			if (ForcedGLDevice == "VulkanDevice")
+			{
+				// FIXME: This is still experimental! -caleb
+				return new VulkanDevice(presentationParameters, adapter);
+			}
+			if (ForcedGLDevice == "ModernGLDevice")
 			{
 				// FIXME: This is still experimental! -flibit
 				return new ModernGLDevice(presentationParameters, adapter);
 			}
-			if (glDevice == "ThreadedGLDevice")
+			if (ForcedGLDevice == "ThreadedGLDevice")
 			{
 				// FIXME: This is still experimental! -flibit
 				return new ThreadedGLDevice(presentationParameters, adapter);

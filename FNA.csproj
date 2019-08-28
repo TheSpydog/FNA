@@ -203,6 +203,8 @@
     <Compile Include="src\FNAPlatform\OpenGLDevice_GL.cs" />
     <Compile Include="src\FNAPlatform\ThreadedGLDevice.cs" />
     <Compile Include="src\FNAPlatform\SDL2_FNAPlatform.cs" />
+    <Compile Include="src\FNAPlatform\VulkanDevice.cs" />
+    <Compile Include="src\FNAPlatform\VulkanDevice_VK.cs" />
     <Compile Include="src\FrameworkDispatcher.cs" />
     <Compile Include="src\Game.cs" />
     <Compile Include="src\GameComponent.cs" />
