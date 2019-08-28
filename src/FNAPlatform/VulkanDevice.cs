@@ -11,17 +11,33 @@
 using System;
 
 using Microsoft.Xna.Framework.Graphics;
+using SDL2;
 #endregion
 
 namespace Microsoft.Xna.Framework.Graphics
 {
 	internal partial class VulkanDevice : IGLDevice
 	{
+		private IntPtr Device;
+
 		public VulkanDevice(
 			PresentationParameters presentationParameters,
 			GraphicsAdapter adapter
 		) {
-			Console.WriteLine("I'm a Vulkan");
+			LoadGlobalEntryPoints();
+			IntPtr instance = InitVulkanInstance();
+			LoadInstanceEntryPoints(instance);
+			Device = CreateLogicalDevice(instance);
+		}
+
+		private IntPtr InitVulkanInstance()
+		{
+			return IntPtr.Zero;
+		}
+
+		private IntPtr CreateLogicalDevice(IntPtr instance)
+		{
+			return IntPtr.Zero;
 		}
 
 		public Color BlendFactor { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
