@@ -9,7 +9,7 @@
 
 #region Using Statements
 using System;
-
+using System.Runtime.InteropServices;
 using Microsoft.Xna.Framework.Graphics;
 using SDL2;
 #endregion
@@ -18,6 +18,7 @@ namespace Microsoft.Xna.Framework.Graphics
 {
 	internal partial class VulkanDevice : IGLDevice
 	{
+		private IntPtr Instance;
 		private IntPtr Device;
 
 		public VulkanDevice(
@@ -25,14 +26,77 @@ namespace Microsoft.Xna.Framework.Graphics
 			GraphicsAdapter adapter
 		) {
 			LoadGlobalEntryPoints();
-			IntPtr instance = InitVulkanInstance();
-			LoadInstanceEntryPoints(instance);
-			Device = CreateLogicalDevice(instance);
+			InitVulkanInstance(presentationParameters.DeviceWindowHandle);
+			LoadInstanceEntryPoints(Instance);
+			Device = CreateLogicalDevice(Instance);
 		}
 
-		private IntPtr InitVulkanInstance()
+		private unsafe void InitVulkanInstance(IntPtr windowHandle)
 		{
-			return IntPtr.Zero;
+			// Describe app metadata
+			VkApplicationInfo appInfo = new VkApplicationInfo
+			{
+				sType = VkStructureType.VK_STRUCTURE_TYPE_APPLICATION_INFO,
+				pNext = IntPtr.Zero,
+				pApplicationName = UTF8_ToNative("FNA Game"), // FIXME: What should we say here?
+				applicationVersion = VK_MAKE_VERSION(1, 0, 0),
+				pEngineName = UTF8_ToNative("FNA"),
+				engineVersion = VK_MAKE_VERSION(19, 9, 0), // FIXME: What version should go here?
+				apiVersion = VK_MAKE_VERSION(1, 0, 0),
+			};
+
+			// Get all available instance extensions
+			uint propertyCount;
+			vkEnumerateInstanceExtensionProperties(null, out propertyCount, IntPtr.Zero);
+			VkExtensionProperties[] allProperties = new VkExtensionProperties[propertyCount];
+			vkEnumerateInstanceExtensionProperties(
+				null,
+				out propertyCount,
+				Marshal.UnsafeAddrOfPinnedArrayElement(allProperties, 0)
+			);
+
+			foreach (VkExtensionProperties extprop in allProperties)
+			{
+				Console.WriteLine(UTF8_ToManaged(extprop.extensionName));
+			}
+
+			// List any instance extensions needed specifically for FNA
+			IntPtr[] fnaExtensions = {
+				// FIXME: What do we need?
+			};
+
+			// Get all extensions required for SDL2
+			uint sdlExtCount;
+			SDL.SDL_Vulkan_GetInstanceExtensions(windowHandle, out sdlExtCount, null);
+			IntPtr[] sdlExtensions = new IntPtr[sdlExtCount];
+			SDL.SDL_Vulkan_GetInstanceExtensions(windowHandle, out sdlExtCount, sdlExtensions);
+
+			// Combine all the extensions into a master list
+			IntPtr[] allExtensions = new IntPtr[(uint) fnaExtensions.Length + sdlExtCount];
+			sdlExtensions.CopyTo(allExtensions, 0);
+			fnaExtensions.CopyTo(allExtensions, sdlExtCount);
+
+			// Create the Vulkan instance
+			VkInstanceCreateInfo appCreateInfo = new VkInstanceCreateInfo
+			{
+				sType = VkStructureType.VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+				pNext = IntPtr.Zero,
+				flags = 0,
+				pApplicationInfo = &appInfo,
+				enabledLayerCount = 0,
+				ppEnabledLayerNames = IntPtr.Zero,
+				enabledExtensionCount = (uint) allExtensions.Length,
+				ppEnabledExtensionNames = Marshal.UnsafeAddrOfPinnedArrayElement(allExtensions, 0) // FIXME: Is there a better way?
+			};
+
+			VkResult res = vkCreateInstance((IntPtr) (&appCreateInfo), IntPtr.Zero, out Instance);
+			if (res != VkResult.VK_SUCCESS)
+			{
+				throw new Exception("Could not create Vulkan Instance! Error: " + res);
+			}
+
+			// Clean up
+			UTF8_FreeNativeStrings();
 		}
 
 		private IntPtr CreateLogicalDevice(IntPtr instance)
