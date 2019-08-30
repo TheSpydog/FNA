@@ -504,6 +504,76 @@ namespace Microsoft.Xna.Framework.Graphics
 			VK_RESULT_MAX_ENUM = 0x7FFFFFFF
 		}
 
+		enum VkDebugUtilsMessageSeverityFlagBitsEXT
+		{
+			VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT = 0x00000001,
+			VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT = 0x00000010,
+			VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT = 0x00000100,
+			VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT = 0x00001000,
+			VK_DEBUG_UTILS_MESSAGE_SEVERITY_FLAG_BITS_MAX_ENUM_EXT = 0x7FFFFFFF
+		}
+
+		enum VkDebugUtilsMessageTypeFlagBitsEXT
+		{
+			VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT = 0x00000001,
+			VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT = 0x00000002,
+			VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT = 0x00000004,
+			VK_DEBUG_UTILS_MESSAGE_TYPE_FLAG_BITS_MAX_ENUM_EXT = 0x7FFFFFFF
+		}
+
+		enum VkObjectType
+		{
+			VK_OBJECT_TYPE_UNKNOWN = 0,
+			VK_OBJECT_TYPE_INSTANCE = 1,
+			VK_OBJECT_TYPE_PHYSICAL_DEVICE = 2,
+			VK_OBJECT_TYPE_DEVICE = 3,
+			VK_OBJECT_TYPE_QUEUE = 4,
+			VK_OBJECT_TYPE_SEMAPHORE = 5,
+			VK_OBJECT_TYPE_COMMAND_BUFFER = 6,
+			VK_OBJECT_TYPE_FENCE = 7,
+			VK_OBJECT_TYPE_DEVICE_MEMORY = 8,
+			VK_OBJECT_TYPE_BUFFER = 9,
+			VK_OBJECT_TYPE_IMAGE = 10,
+			VK_OBJECT_TYPE_EVENT = 11,
+			VK_OBJECT_TYPE_QUERY_POOL = 12,
+			VK_OBJECT_TYPE_BUFFER_VIEW = 13,
+			VK_OBJECT_TYPE_IMAGE_VIEW = 14,
+			VK_OBJECT_TYPE_SHADER_MODULE = 15,
+			VK_OBJECT_TYPE_PIPELINE_CACHE = 16,
+			VK_OBJECT_TYPE_PIPELINE_LAYOUT = 17,
+			VK_OBJECT_TYPE_RENDER_PASS = 18,
+			VK_OBJECT_TYPE_PIPELINE = 19,
+			VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT = 20,
+			VK_OBJECT_TYPE_SAMPLER = 21,
+			VK_OBJECT_TYPE_DESCRIPTOR_POOL = 22,
+			VK_OBJECT_TYPE_DESCRIPTOR_SET = 23,
+			VK_OBJECT_TYPE_FRAMEBUFFER = 24,
+			VK_OBJECT_TYPE_COMMAND_POOL = 25,
+			VK_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION = 1000156000,
+			VK_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE = 1000085000,
+			VK_OBJECT_TYPE_SURFACE_KHR = 1000000000,
+			VK_OBJECT_TYPE_SWAPCHAIN_KHR = 1000001000,
+			VK_OBJECT_TYPE_DISPLAY_KHR = 1000002000,
+			VK_OBJECT_TYPE_DISPLAY_MODE_KHR = 1000002001,
+			VK_OBJECT_TYPE_DEBUG_REPORT_CALLBACK_EXT = 1000011000,
+			VK_OBJECT_TYPE_OBJECT_TABLE_NVX = 1000086000,
+			VK_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NVX = 1000086001,
+			VK_OBJECT_TYPE_DEBUG_UTILS_MESSENGER_EXT = 1000128000,
+			VK_OBJECT_TYPE_VALIDATION_CACHE_EXT = 1000160000,
+			VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_NV = 1000165000,
+			VK_OBJECT_TYPE_PERFORMANCE_CONFIGURATION_INTEL = 1000210000,
+			VK_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_KHR = VK_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE,
+			VK_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION_KHR = VK_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION,
+			VK_OBJECT_TYPE_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		#endregion
+
+		#region Private Constants
+
+		private const int VK_MAX_EXTENSION_NAME_SIZE = 256;
+		private const int VK_MAX_DESCRIPTION_SIZE = 256;
+
 		#endregion
 
 		#region Private Structs
@@ -533,8 +603,63 @@ namespace Microsoft.Xna.Framework.Graphics
 
 		private unsafe struct VkExtensionProperties
 		{
-			public fixed byte extensionName[256];
+			public fixed byte extensionName[VK_MAX_EXTENSION_NAME_SIZE];
 			public uint specVersion;
+		}
+
+		private unsafe struct VkLayerProperties
+		{
+			public fixed byte layerName[VK_MAX_EXTENSION_NAME_SIZE];
+			public uint specVersion;
+			public uint implementationVersion;
+			public fixed byte description[VK_MAX_DESCRIPTION_SIZE];
+		}
+
+		private unsafe struct VkDebugUtilsMessengerCallbackDataEXT
+		{
+			public VkStructureType sType;
+			public IntPtr pNext;
+			public uint flags;
+			public IntPtr pMessageIdName;
+			public int messageIdNumber;
+			public IntPtr pMessage;
+			public uint queueLabelCount;
+			public VkDebugUtilsLabelEXT* pQueueLabels;
+			public uint cmdBufLabelCount;
+			public VkDebugUtilsLabelEXT* pCmdBufLabels;
+			public uint objectCount;
+			public VkDebugUtilsObjectNameInfoEXT* pObjects;
+		}
+
+		struct VkDebugUtilsLabelEXT
+		{
+			public VkStructureType sType;
+			public IntPtr pNext;
+			public IntPtr pLabelName;
+			public float color_0;
+			public float color_1;
+			public float color_2;
+			public float color_3;
+		}
+
+		struct VkDebugUtilsObjectNameInfoEXT
+		{
+			public VkStructureType sType;
+			public IntPtr pNext;
+			public VkObjectType objectType;
+			public ulong objectHandle;
+			public IntPtr pObjectName;
+		}
+
+		struct VkDebugUtilsMessengerCreateInfoEXT
+		{
+			public VkStructureType sType;
+			public IntPtr pNext;
+			public uint flags;
+			public VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity;
+			public VkDebugUtilsMessageTypeFlagBitsEXT messageType;
+			public IntPtr pfnUserCallback;
+			public IntPtr pUserData;
 		}
 
 		#endregion
@@ -598,17 +723,40 @@ namespace Microsoft.Xna.Framework.Graphics
 				"vkCreateInstance",
 				typeof(CreateInstance)
 			);
-
 			vkEnumerateInstanceExtensionProperties = (EnumerateInstanceExtensionProperties) GetProcAddress(
 				IntPtr.Zero,
 				"vkEnumerateInstanceExtensionProperties",
 				typeof(EnumerateInstanceExtensionProperties)
 			);
+			vkEnumerateInstanceLayerProperties = (EnumerateInstanceLayerProperties) GetProcAddress(
+				IntPtr.Zero,
+				"vkEnumerateInstanceLayerProperties",
+				typeof(EnumerateInstanceLayerProperties)
+			);
 		}
 
-		public void LoadInstanceEntryPoints(IntPtr instance)
+		public void LoadInstanceEntryPoints()
 		{
+			vkDestroyInstance = (DestroyInstance) GetProcAddress(
+				Instance,
+				"vkDestroyInstance",
+				typeof(DestroyInstance)
+			);
 
+			if (validationEnabled && hasDebugUtils)
+			{
+				vkCreateDebugUtilsMessengerEXT = (CreateDebugUtilsMessengerEXT) GetProcAddress(
+					Instance,
+					"vkCreateDebugUtilsMessengerEXT",
+					typeof(CreateDebugUtilsMessengerEXT)
+				);
+
+				vkDestroyDebugUtilsMessengerEXT = (DestroyDebugUtilsMessengerEXT) GetProcAddress(
+					Instance,
+					"vkDestroyDebugUtilsMessengerEXT",
+					typeof(DestroyDebugUtilsMessengerEXT)
+				);
+			}
 		}
 
 		private delegate IntPtr GetInstanceProcAddr(
@@ -624,12 +772,47 @@ namespace Microsoft.Xna.Framework.Graphics
 		);
 		private CreateInstance vkCreateInstance;
 
-		private delegate VkResult EnumerateInstanceExtensionProperties(
+		private delegate void DestroyInstance(
+			IntPtr instance,
+			IntPtr pAllocator
+		);
+		private DestroyInstance vkDestroyInstance;
+
+		private unsafe delegate VkResult EnumerateInstanceExtensionProperties(
 			string layerName,
 			out uint propertyCount,
-			IntPtr pProperties
+			VkExtensionProperties* pProperties
 		);
 		private EnumerateInstanceExtensionProperties vkEnumerateInstanceExtensionProperties;
+
+		private unsafe delegate VkResult EnumerateInstanceLayerProperties(
+			out uint propertyCount,
+			VkLayerProperties* pProperties
+		);
+		private EnumerateInstanceLayerProperties vkEnumerateInstanceLayerProperties;
+
+		private unsafe delegate VkResult CreateDebugUtilsMessengerEXT(
+		    IntPtr instance,
+		    VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+		    IntPtr pAllocator,
+		    out IntPtr pMessenger
+		);
+		private CreateDebugUtilsMessengerEXT vkCreateDebugUtilsMessengerEXT;
+
+		private unsafe delegate VkResult DestroyDebugUtilsMessengerEXT(
+		    IntPtr instance,
+		    IntPtr messenger,
+		    IntPtr pAllocator
+		);
+		private DestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT;
+
+		// VK_KHR_debug_utils callback function
+		private unsafe delegate uint PFN_vkDebugUtilsMessengerCallbackEXT(
+			VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+			VkDebugUtilsMessageTypeFlagBitsEXT messageType,
+			VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+			IntPtr pUserData
+		);
 
 		#endregion
 	}
