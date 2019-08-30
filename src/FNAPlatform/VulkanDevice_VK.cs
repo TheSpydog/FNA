@@ -743,7 +743,7 @@ namespace Microsoft.Xna.Framework.Graphics
 				typeof(DestroyInstance)
 			);
 
-			if (validationEnabled && hasDebugUtils)
+			if (validationEnabled)
 			{
 				vkCreateDebugUtilsMessengerEXT = (CreateDebugUtilsMessengerEXT) GetProcAddress(
 					Instance,

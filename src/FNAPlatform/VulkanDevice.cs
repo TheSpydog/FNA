@@ -21,20 +21,21 @@ namespace Microsoft.Xna.Framework.Graphics
 	{
 		private IntPtr Instance;
 
+		private bool renderdocEnabled;
 		private bool validationEnabled;
-		private bool hasDebugUtils;
 		IntPtr debugMessenger;
 
 		public VulkanDevice(
 			PresentationParameters presentationParameters,
 			GraphicsAdapter adapter
 		) {
+			renderdocEnabled = Environment.GetEnvironmentVariable("FNA_VULKAN_ENABLE_RENDERDOC") == "1";
 			validationEnabled = Environment.GetEnvironmentVariable("FNA_VULKAN_ENABLE_VALIDATION") == "1";
 
 			LoadGlobalEntryPoints();
 			InitVulkanInstance(presentationParameters.DeviceWindowHandle);
 			LoadInstanceEntryPoints();
-			if (validationEnabled && hasDebugUtils)
+			if (validationEnabled)
 			{
 				InitDebugMessenger();
 			}
@@ -105,12 +106,12 @@ namespace Microsoft.Xna.Framework.Graphics
 				string debugUtilsExt = "VK_EXT_debug_utils";
 				if (InstanceExtensionSupported(debugUtilsExt, availableExtensions))
 				{
-					hasDebugUtils = true;
 					extensions.Add(UTF8_ToNative(debugUtilsExt));
 				}
 				else
 				{
-					FNALoggerEXT.LogWarn("VK_EXT_debug_utils not supported!");
+					validationEnabled = false;
+					FNALoggerEXT.LogWarn(debugUtilsExt + " not supported!");
 				}
 			}
 
@@ -126,20 +127,21 @@ namespace Microsoft.Xna.Framework.Graphics
 			// Generate a list of all validation layers we will use
 			List<IntPtr> layers = new List<IntPtr>();
 
+			if (renderdocEnabled)
+			{
+				string layername = "VK_LAYER_RENDERDOC_Capture";
+				if (InstanceLayerSupported(layername, availableLayers))
+				{
+					layers.Add(UTF8_ToNative(layername));
+				}
+				else
+				{
+					FNALoggerEXT.LogWarn(layername + " not supported!");
+				}
+			}
 			if (validationEnabled)
 			{
-				string[] fnaOptionalLayers =
-				{
-					//"VK_LAYER_RENDERDOC_Capture",
-					"VK_LAYER_KHRONOS_validation"
-				};
-				foreach (string layer in fnaOptionalLayers)
-				{
-					if (InstanceLayerSupported(layer, availableLayers))
-					{
-						layers.Add(UTF8_ToNative(layer));
-					}
-				}
+				layers.Add(UTF8_ToNative("VK_LAYER_KHRONOS_validation"));
 			}
 
 			// Create the Vulkan instance
@@ -235,6 +237,7 @@ namespace Microsoft.Xna.Framework.Graphics
 				FNALoggerEXT.LogInfo(message);
 			}
 
+			UTF8_FreeNativeStrings();
 			return 0;
 		}
 
