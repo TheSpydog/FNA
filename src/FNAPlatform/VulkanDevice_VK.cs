@@ -567,12 +567,46 @@ namespace Microsoft.Xna.Framework.Graphics
 			VK_OBJECT_TYPE_MAX_ENUM = 0x7FFFFFFF
 		}
 
+		enum VkPhysicalDeviceType
+		{
+			VK_PHYSICAL_DEVICE_TYPE_OTHER = 0,
+			VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU = 1,
+			VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU = 2,
+			VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU = 3,
+			VK_PHYSICAL_DEVICE_TYPE_CPU = 4,
+			VK_PHYSICAL_DEVICE_TYPE_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		enum VkSampleCountFlagBits
+		{
+			VK_SAMPLE_COUNT_1_BIT = 0x00000001,
+			VK_SAMPLE_COUNT_2_BIT = 0x00000002,
+			VK_SAMPLE_COUNT_4_BIT = 0x00000004,
+			VK_SAMPLE_COUNT_8_BIT = 0x00000008,
+			VK_SAMPLE_COUNT_16_BIT = 0x00000010,
+			VK_SAMPLE_COUNT_32_BIT = 0x00000020,
+			VK_SAMPLE_COUNT_64_BIT = 0x00000040,
+			VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		enum VkQueueFlagBits
+		{
+			VK_QUEUE_GRAPHICS_BIT = 0x00000001,
+			VK_QUEUE_COMPUTE_BIT = 0x00000002,
+			VK_QUEUE_TRANSFER_BIT = 0x00000004,
+			VK_QUEUE_SPARSE_BINDING_BIT = 0x00000008,
+			VK_QUEUE_PROTECTED_BIT = 0x00000010,
+			VK_QUEUE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
+		}
+
 		#endregion
 
 		#region Private Constants
 
 		private const int VK_MAX_EXTENSION_NAME_SIZE = 256;
 		private const int VK_MAX_DESCRIPTION_SIZE = 256;
+		private const int VK_MAX_PHYSICAL_DEVICE_NAME_SIZE = 256;
+		private const int VK_UUID_SIZE = 16;
 
 		#endregion
 
@@ -614,6 +648,222 @@ namespace Microsoft.Xna.Framework.Graphics
 			public uint implementationVersion;
 			public fixed byte description[VK_MAX_DESCRIPTION_SIZE];
 		}
+
+		private unsafe struct VkPhysicalDeviceProperties
+		{
+			public uint apiVersion;
+			public uint driverVersion;
+			public uint vendorID;
+			public uint deviceID;
+			public VkPhysicalDeviceType deviceType;
+			public fixed byte deviceName[VK_MAX_PHYSICAL_DEVICE_NAME_SIZE];
+			public fixed byte pipelineCacheUUID[VK_UUID_SIZE];
+			public VkPhysicalDeviceLimits limits;
+			public VkPhysicalDeviceSparseProperties sparseProperties;
+		}
+
+		struct VkPhysicalDeviceLimits
+		{
+			public uint maxImageDimension1D;
+			public uint maxImageDimension2D;
+			public uint maxImageDimension3D;
+			public uint maxImageDimensionCube;
+			public uint maxImageArrayLayers;
+			public uint maxTexelBufferElements;
+			public uint maxUniformBufferRange;
+			public uint maxStorageBufferRange;
+			public uint maxPushConstantsSize;
+			public uint maxMemoryAllocationCount;
+			public uint maxSamplerAllocationCount;
+			public ulong bufferImageGranularity;
+			public ulong sparseAddressSpaceSize;
+			public uint maxBoundDescriptorSets;
+			public uint maxPerStageDescriptorSamplers;
+			public uint maxPerStageDescriptorUniformBuffers;
+			public uint maxPerStageDescriptorStorageBuffers;
+			public uint maxPerStageDescriptorSampledImages;
+			public uint maxPerStageDescriptorStorageImages;
+			public uint maxPerStageDescriptorInputAttachments;
+			public uint maxPerStageResources;
+			public uint maxDescriptorSetSamplers;
+			public uint maxDescriptorSetUniformBuffers;
+			public uint maxDescriptorSetUniformBuffersDynamic;
+			public uint maxDescriptorSetStorageBuffers;
+			public uint maxDescriptorSetStorageBuffersDynamic;
+			public uint maxDescriptorSetSampledImages;
+			public uint maxDescriptorSetStorageImages;
+			public uint maxDescriptorSetInputAttachments;
+			public uint maxVertexInputAttributes;
+			public uint maxVertexInputBindings;
+			public uint maxVertexInputAttributeOffset;
+			public uint maxVertexInputBindingStride;
+			public uint maxVertexOutputComponents;
+			public uint maxTessellationGenerationLevel;
+			public uint maxTessellationPatchSize;
+			public uint maxTessellationControlPerVertexInputComponents;
+			public uint maxTessellationControlPerVertexOutputComponents;
+			public uint maxTessellationControlPerPatchOutputComponents;
+			public uint maxTessellationControlTotalOutputComponents;
+			public uint maxTessellationEvaluationInputComponents;
+			public uint maxTessellationEvaluationOutputComponents;
+			public uint maxGeometryShaderInvocations;
+			public uint maxGeometryInputComponents;
+			public uint maxGeometryOutputComponents;
+			public uint maxGeometryOutputVertices;
+			public uint maxGeometryTotalOutputComponents;
+			public uint maxFragmentInputComponents;
+			public uint maxFragmentOutputAttachments;
+			public uint maxFragmentDualSrcAttachments;
+			public uint maxFragmentCombinedOutputResources;
+			public uint maxComputeSharedMemorySize;
+			public uint maxComputeWorkGroupCount_0;
+			public uint maxComputeWorkGroupCount_1;
+			public uint maxComputeWorkGroupCount_2;
+			public uint maxComputeWorkGroupInvocations;
+			public uint maxComputeWorkGroupSize_0;
+			public uint maxComputeWorkGroupSize_1;
+			public uint maxComputeWorkGroupSize_2;
+			public uint subPixelPrecisionBits;
+			public uint subTexelPrecisionBits;
+			public uint mipmapPrecisionBits;
+			public uint maxDrawIndexedIndexValue;
+			public uint maxDrawIndirectCount;
+			public float maxSamplerLodBias;
+			public float maxSamplerAnisotropy;
+			public uint maxViewports;
+			public uint maxViewportDimensions_X;
+			public uint maxViewportDimensions_Y;
+			public float viewportBoundsRange_X;
+			public float viewportBoundsRange_Y;
+			public uint viewportSubPixelBits;
+			public uint minMemoryMapAlignment; // FIXME: size_t?
+			public ulong minTexelBufferOffsetAlignment;
+			public ulong minUniformBufferOffsetAlignment;
+			public ulong minStorageBufferOffsetAlignment;
+			public int minTexelOffset;
+			public uint maxTexelOffset;
+			public int minTexelGatherOffset;
+			public uint maxTexelGatherOffset;
+			public float minInterpolationOffset;
+			public float maxInterpolationOffset;
+			public uint subPixelInterpolationOffsetBits;
+			public uint maxFramebufferWidth;
+			public uint maxFramebufferHeight;
+			public uint maxFramebufferLayers;
+			public VkSampleCountFlagBits framebufferColorSampleCounts;
+			public VkSampleCountFlagBits framebufferDepthSampleCounts;
+			public VkSampleCountFlagBits framebufferStencilSampleCounts;
+			public VkSampleCountFlagBits framebufferNoAttachmentsSampleCounts;
+			public uint maxColorAttachments;
+			public VkSampleCountFlagBits sampledImageColorSampleCounts;
+			public VkSampleCountFlagBits sampledImageIntegerSampleCounts;
+			public VkSampleCountFlagBits sampledImageDepthSampleCounts;
+			public VkSampleCountFlagBits sampledImageStencilSampleCounts;
+			public VkSampleCountFlagBits storageImageSampleCounts;
+			public uint maxSampleMaskWords;
+			public uint timestampComputeAndGraphics;
+			public float timestampPeriod;
+			public uint maxClipDistances;
+			public uint maxCullDistances;
+			public uint maxCombinedClipAndCullDistances;
+			public uint discreteQueuePriorities;
+			public float pointSizeRange_MIN;
+			public float pointSizeRange_MAX;
+			public float lineWidthRange_MIN;
+			public float lineWidthRange_MAX;
+			public float pointSizeGranularity;
+			public float lineWidthGranularity;
+			public uint strictLines;
+			public uint standardSampleLocations;
+			public ulong optimalBufferCopyOffsetAlignment;
+			public ulong optimalBufferCopyRowPitchAlignment;
+			public ulong nonCoherentAtomSize;
+		}
+
+		struct VkPhysicalDeviceSparseProperties
+		{
+			public uint residencyStandard2DBlockShape;
+			public uint residencyStandard2DMultisampleBlockShape;
+			public uint residencyStandard3DBlockShape;
+			public uint residencyAlignedMipSize;
+			public uint residencyNonResidentStrict;
+		}
+
+		struct VkPhysicalDeviceFeatures
+		{
+			public uint robustBufferAccess;
+			public uint fullDrawIndexUint32;
+			public uint imageCubeArray;
+			public uint independentBlend;
+			public uint geometryShader;
+			public uint tessellationShader;
+			public uint sampleRateShading;
+			public uint dualSrcBlend;
+			public uint logicOp;
+			public uint multiDrawIndirect;
+			public uint drawIndirectFirstInstance;
+			public uint depthClamp;
+			public uint depthBiasClamp;
+			public uint fillModeNonSolid;
+			public uint depthBounds;
+			public uint wideLines;
+			public uint largePoints;
+			public uint alphaToOne;
+			public uint multiViewport;
+			public uint samplerAnisotropy;
+			public uint textureCompressionETC2;
+			public uint textureCompressionASTC_LDR;
+			public uint textureCompressionBC;
+			public uint occlusionQueryPrecise;
+			public uint pipelineStatisticsQuery;
+			public uint vertexPipelineStoresAndAtomics;
+			public uint fragmentStoresAndAtomics;
+			public uint shaderTessellationAndGeometryPointSize;
+			public uint shaderImageGatherExtended;
+			public uint shaderStorageImageExtendedFormats;
+			public uint shaderStorageImageMultisample;
+			public uint shaderStorageImageReadWithoutFormat;
+			public uint shaderStorageImageWriteWithoutFormat;
+			public uint shaderUniformBufferArrayDynamicIndexing;
+			public uint shaderSampledImageArrayDynamicIndexing;
+			public uint shaderStorageBufferArrayDynamicIndexing;
+			public uint shaderStorageImageArrayDynamicIndexing;
+			public uint shaderClipDistance;
+			public uint shaderCullDistance;
+			public uint shaderFloat64;
+			public uint shaderInt64;
+			public uint shaderInt16;
+			public uint shaderResourceResidency;
+			public uint shaderResourceMinLod;
+			public uint sparseBinding;
+			public uint sparseResidencyBuffer;
+			public uint sparseResidencyImage2D;
+			public uint sparseResidencyImage3D;
+			public uint sparseResidency2Samples;
+			public uint sparseResidency4Samples;
+			public uint sparseResidency8Samples;
+			public uint sparseResidency16Samples;
+			public uint sparseResidencyAliased;
+			public uint variableMultisampleRate;
+			public uint inheritedQueries;
+		}
+
+		private struct VkExtent3D
+		{
+			public uint width;
+			public uint height;
+			public uint depth;
+		}
+
+		private struct VkQueueFamilyProperties
+		{
+			public VkQueueFlagBits queueFlags;
+			public uint queueCount;
+			public uint timestampValidBits;
+			public VkExtent3D minImageTransferGranularity;
+		}
+
+		#region VK_KHR_debug_utils
 
 		private unsafe struct VkDebugUtilsMessengerCallbackDataEXT
 		{
@@ -664,6 +914,8 @@ namespace Microsoft.Xna.Framework.Graphics
 
 		#endregion
 
+		#endregion
+
 		#region UTF8 Interop
 
 		private Stack<IntPtr> toFree = new Stack<IntPtr>();
@@ -699,9 +951,9 @@ namespace Microsoft.Xna.Framework.Graphics
 			return (major << 22) | (minor << 12) | patch;
 		}
 
-		private Delegate GetProcAddress(IntPtr instance, string name, Type type)
+		private Delegate GetProcAddress(string name, Type type)
 		{
-			IntPtr addr = vkGetInstanceProcAddr(instance, name);
+			IntPtr addr = vkGetInstanceProcAddr(Instance, name);
 			if (addr == IntPtr.Zero)
 			{
 				throw new Exception(name);
@@ -719,17 +971,14 @@ namespace Microsoft.Xna.Framework.Graphics
 
 			// Now load global entry points
 			vkCreateInstance = (CreateInstance) GetProcAddress(
-				IntPtr.Zero,
 				"vkCreateInstance",
 				typeof(CreateInstance)
 			);
 			vkEnumerateInstanceExtensionProperties = (EnumerateInstanceExtensionProperties) GetProcAddress(
-				IntPtr.Zero,
 				"vkEnumerateInstanceExtensionProperties",
 				typeof(EnumerateInstanceExtensionProperties)
 			);
 			vkEnumerateInstanceLayerProperties = (EnumerateInstanceLayerProperties) GetProcAddress(
-				IntPtr.Zero,
 				"vkEnumerateInstanceLayerProperties",
 				typeof(EnumerateInstanceLayerProperties)
 			);
@@ -738,21 +987,34 @@ namespace Microsoft.Xna.Framework.Graphics
 		public void LoadInstanceEntryPoints()
 		{
 			vkDestroyInstance = (DestroyInstance) GetProcAddress(
-				Instance,
 				"vkDestroyInstance",
 				typeof(DestroyInstance)
+			);
+			vkEnumeratePhysicalDevices = (EnumeratePhysicalDevices) GetProcAddress(
+				"vkEnumeratePhysicalDevices",
+				typeof(EnumeratePhysicalDevices)
+			);
+			vkGetPhysicalDeviceProperties = (GetPhysicalDeviceProperties) GetProcAddress(
+				"vkGetPhysicalDeviceProperties",
+				typeof(GetPhysicalDeviceProperties)
+			);
+			vkGetPhysicalDeviceFeatures = (GetPhysicalDeviceFeatures) GetProcAddress(
+				"vkGetPhysicalDeviceFeatures",
+				typeof(GetPhysicalDeviceFeatures)
+			);
+			vkGetPhysicalDeviceQueueFamilyProperties = (GetPhysicalDeviceQueueFamilyProperties) GetProcAddress(
+				"vkGetPhysicalDeviceQueueFamilyProperties",
+				typeof(GetPhysicalDeviceQueueFamilyProperties)
 			);
 
 			if (validationEnabled)
 			{
 				vkCreateDebugUtilsMessengerEXT = (CreateDebugUtilsMessengerEXT) GetProcAddress(
-					Instance,
 					"vkCreateDebugUtilsMessengerEXT",
 					typeof(CreateDebugUtilsMessengerEXT)
 				);
 
 				vkDestroyDebugUtilsMessengerEXT = (DestroyDebugUtilsMessengerEXT) GetProcAddress(
-					Instance,
 					"vkDestroyDebugUtilsMessengerEXT",
 					typeof(DestroyDebugUtilsMessengerEXT)
 				);
@@ -791,28 +1053,58 @@ namespace Microsoft.Xna.Framework.Graphics
 		);
 		private EnumerateInstanceLayerProperties vkEnumerateInstanceLayerProperties;
 
+		private unsafe delegate VkResult EnumeratePhysicalDevices(
+			IntPtr instance,
+			out uint physicalDeviceCount,
+			IntPtr* physicalDevices
+		);
+		private EnumeratePhysicalDevices vkEnumeratePhysicalDevices;
+
+		private unsafe delegate void GetPhysicalDeviceProperties(
+			IntPtr physicalDevice,
+			out VkPhysicalDeviceProperties properties
+		);
+		private GetPhysicalDeviceProperties vkGetPhysicalDeviceProperties;
+
+		private unsafe delegate void GetPhysicalDeviceFeatures(
+			IntPtr physicalDevice,
+			out VkPhysicalDeviceFeatures features
+		);
+		private GetPhysicalDeviceFeatures vkGetPhysicalDeviceFeatures;
+
+		private unsafe delegate void GetPhysicalDeviceQueueFamilyProperties(
+			IntPtr physicalDevice,
+			out uint queueFamilyPropertyCount,
+			VkQueueFamilyProperties* queueFamilies
+		);
+		private GetPhysicalDeviceQueueFamilyProperties vkGetPhysicalDeviceQueueFamilyProperties;
+
+		#region VK_KHR_debug_utils
+
 		private unsafe delegate VkResult CreateDebugUtilsMessengerEXT(
-		    IntPtr instance,
-		    VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
-		    IntPtr pAllocator,
-		    out IntPtr pMessenger
+			IntPtr instance,
+			VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+			IntPtr pAllocator,
+			out IntPtr pMessenger
 		);
 		private CreateDebugUtilsMessengerEXT vkCreateDebugUtilsMessengerEXT;
 
 		private unsafe delegate VkResult DestroyDebugUtilsMessengerEXT(
-		    IntPtr instance,
-		    IntPtr messenger,
-		    IntPtr pAllocator
+			IntPtr instance,
+			IntPtr messenger,
+			IntPtr pAllocator
 		);
 		private DestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT;
 
-		// VK_KHR_debug_utils callback function
+		// Callback function
 		private unsafe delegate uint PFN_vkDebugUtilsMessengerCallbackEXT(
 			VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 			VkDebugUtilsMessageTypeFlagBitsEXT messageType,
 			VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 			IntPtr pUserData
 		);
+
+		#endregion
 
 		#endregion
 	}

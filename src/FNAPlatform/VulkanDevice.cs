@@ -20,10 +20,13 @@ namespace Microsoft.Xna.Framework.Graphics
 	internal partial class VulkanDevice : IGLDevice
 	{
 		private IntPtr Instance;
+		private IntPtr PhysicalDevice;
+		private IntPtr DebugMessenger;
+
+		private int graphicsQueueFamilyIndex;
 
 		private bool renderdocEnabled;
 		private bool validationEnabled;
-		IntPtr debugMessenger;
 
 		public VulkanDevice(
 			PresentationParameters presentationParameters,
@@ -39,7 +42,8 @@ namespace Microsoft.Xna.Framework.Graphics
 			{
 				InitDebugMessenger();
 			}
-			// Device = CreateLogicalDevice()
+			SelectPhysicalDevice();
+			CreateLogicalDevice();
 		}
 
 		private unsafe bool InstanceExtensionSupported(string extName, VkExtensionProperties[] extensions)
@@ -206,7 +210,7 @@ namespace Microsoft.Xna.Framework.Graphics
 				Instance,
 				&createInfo,
 				IntPtr.Zero,
-				out debugMessenger
+				out DebugMessenger
 			);
 
 			if (res != VkResult.VK_SUCCESS)
@@ -241,9 +245,87 @@ namespace Microsoft.Xna.Framework.Graphics
 			return 0;
 		}
 
-		private IntPtr CreateLogicalDevice(IntPtr instance)
+		private unsafe void SelectPhysicalDevice()
 		{
-			return IntPtr.Zero;
+			// Get all physical devices
+			uint physicalDeviceCount;
+			vkEnumeratePhysicalDevices(Instance, out physicalDeviceCount, null);
+			IntPtr[] physicalDevices = new IntPtr[physicalDeviceCount];
+			fixed (IntPtr* ptr = physicalDevices)
+			{
+				vkEnumeratePhysicalDevices(Instance, out physicalDeviceCount, ptr);
+			}
+
+			// Search for the ideal physical device
+			int[] scores = new int[physicalDeviceCount];
+			int[] graphicsQueueIndices = new int[physicalDeviceCount];
+			for (int i = 0; i < scores.Length; i += 1)
+			{
+				// Get all supported queue families
+				uint queueFamilyCount;
+				vkGetPhysicalDeviceQueueFamilyProperties(physicalDevices[i], out queueFamilyCount, null);
+				VkQueueFamilyProperties[] queueFamilies = new VkQueueFamilyProperties[queueFamilyCount];
+				fixed (VkQueueFamilyProperties* ptr = queueFamilies)
+				{
+					vkGetPhysicalDeviceQueueFamilyProperties(physicalDevices[i], out queueFamilyCount, ptr);
+				}
+
+				// The physical device MUST have at least one graphics queue family
+				bool supportsGraphicsQueues = false;
+				for (int j = 0; j < queueFamilyCount; j += 1)
+				{
+					if ((queueFamilies[j].queueFlags & VkQueueFlagBits.VK_QUEUE_GRAPHICS_BIT) != 0)
+					{
+						// This queue family supports graphics!
+						supportsGraphicsQueues = true;
+						graphicsQueueIndices[i] = j;
+						break;
+					}
+				}
+				if (!supportsGraphicsQueues)
+				{
+					// There's no graphics support on this GPU. Skip!
+					scores[i] = int.MinValue;
+					continue;
+				}
+
+				// Check for optional properties and features
+				VkPhysicalDeviceProperties props;
+				VkPhysicalDeviceFeatures features;
+				vkGetPhysicalDeviceProperties(physicalDevices[i], out props);
+				vkGetPhysicalDeviceFeatures(physicalDevices[i], out features);
+
+				// Discrete GPU > Integrated GPU > Anything else
+				if (props.deviceType == VkPhysicalDeviceType.VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+					scores[i] += 100;
+				else if (props.deviceType == VkPhysicalDeviceType.VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
+					scores[i] += 50;
+
+				// FIXME: What else do we care about...? -caleb
+			}
+
+			// Determine the winner
+			int bestScore = -1;
+			for (int i = 0; i < physicalDeviceCount; i += 1)
+			{
+				if (scores[i] > bestScore)
+				{
+					bestScore = scores[i];
+					PhysicalDevice = physicalDevices[i];
+
+					// We need this when we create the logical device.
+					graphicsQueueFamilyIndex = graphicsQueueIndices[i];
+				}
+			}
+			if (bestScore == -1)
+			{
+				throw new NoSuitableGraphicsDeviceException("No Vulkan compatible GPUs detected!");
+			}
+		}
+
+		private void CreateLogicalDevice()
+		{
+
 		}
 
 		public Color BlendFactor { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
