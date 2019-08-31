@@ -21,12 +21,14 @@ namespace Microsoft.Xna.Framework.Graphics
 	{
 		private IntPtr Instance;
 		private IntPtr PhysicalDevice;
-		private IntPtr DebugMessenger;
+		private IntPtr Device;
+		private IntPtr GraphicsQueue;
 
-		private int graphicsQueueFamilyIndex;
+		private uint graphicsQueueFamilyIndex;
 
 		private bool renderdocEnabled;
 		private bool validationEnabled;
+		private IntPtr DebugMessenger;
 
 		public VulkanDevice(
 			PresentationParameters presentationParameters,
@@ -44,6 +46,9 @@ namespace Microsoft.Xna.Framework.Graphics
 			}
 			SelectPhysicalDevice();
 			CreateLogicalDevice();
+
+			// Store a handle to the graphics queue
+			vkGetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, out GraphicsQueue);
 		}
 
 		private unsafe bool InstanceExtensionSupported(string extName, VkExtensionProperties[] extensions)
@@ -91,9 +96,13 @@ namespace Microsoft.Xna.Framework.Graphics
 			uint availableExtensionCount;
 			vkEnumerateInstanceExtensionProperties(null, out availableExtensionCount, null);
 			VkExtensionProperties[] availableExtensions = new VkExtensionProperties[availableExtensionCount];
-			fixed (VkExtensionProperties* ptr = availableExtensions)
+			fixed (VkExtensionProperties* availableExtensionsPtr = availableExtensions)
 			{
-				vkEnumerateInstanceExtensionProperties(null, out availableExtensionCount, ptr);
+				vkEnumerateInstanceExtensionProperties(
+					null,
+					out availableExtensionCount,
+					availableExtensionsPtr
+				);
 			}
 
 			// Generate a list of all instance extensions we will use
@@ -123,14 +132,16 @@ namespace Microsoft.Xna.Framework.Graphics
 			uint availableLayerCount;
 			vkEnumerateInstanceLayerProperties(out availableLayerCount, null);
 			VkLayerProperties[] availableLayers = new VkLayerProperties[availableLayerCount];
-			fixed (VkLayerProperties* ptr = availableLayers)
+			fixed (VkLayerProperties* availableLayersPtr = availableLayers)
 			{
-				vkEnumerateInstanceLayerProperties(out availableLayerCount, ptr);
+				vkEnumerateInstanceLayerProperties(
+					out availableLayerCount,
+					availableLayersPtr
+				);
 			}
 
 			// Generate a list of all validation layers we will use
 			List<IntPtr> layers = new List<IntPtr>();
-
 			if (renderdocEnabled)
 			{
 				string layername = "VK_LAYER_RENDERDOC_Capture";
@@ -148,6 +159,13 @@ namespace Microsoft.Xna.Framework.Graphics
 				layers.Add(UTF8_ToNative("VK_LAYER_KHRONOS_validation"));
 			}
 
+			// Optionally apply validation to instance creation / destruction
+			VkDebugUtilsMessengerCreateInfoEXT instanceDebugMessengerCreateInfo = new VkDebugUtilsMessengerCreateInfoEXT();
+			if (validationEnabled)
+			{
+				instanceDebugMessengerCreateInfo = CreateDebugMessengerCreateInfo();
+			}
+
 			// Create the Vulkan instance
 			VkInstanceCreateInfo appCreateInfo;
 			IntPtr[] extensionsArray = extensions.ToArray();
@@ -159,18 +177,18 @@ namespace Microsoft.Xna.Framework.Graphics
 					appCreateInfo = new VkInstanceCreateInfo
 					{
 						sType = VkStructureType.VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-						pNext = IntPtr.Zero,
+						pNext = validationEnabled ? (IntPtr) (&instanceDebugMessengerCreateInfo) : IntPtr.Zero,
 						flags = 0,
 						pApplicationInfo = &appInfo,
 						enabledLayerCount = (uint) layersArray.Length,
-						ppEnabledLayerNames = (IntPtr) layerNamesPtr,
+						ppEnabledLayerNames = layerNamesPtr,
 						enabledExtensionCount = (uint) extensionsArray.Length,
-						ppEnabledExtensionNames = (IntPtr) extNamesPtr
+						ppEnabledExtensionNames = extNamesPtr
 					};
 				}
 			}
 
-			VkResult res = vkCreateInstance((IntPtr) (&appCreateInfo), IntPtr.Zero, out Instance);
+			VkResult res = vkCreateInstance(&appCreateInfo, IntPtr.Zero, out Instance);
 			if (res != VkResult.VK_SUCCESS)
 			{
 				throw new Exception("Could not create Vulkan Instance! Error: " + res);
@@ -180,20 +198,23 @@ namespace Microsoft.Xna.Framework.Graphics
 			UTF8_FreeNativeStrings();
 		}
 
-		private unsafe void InitDebugMessenger()
+		private unsafe VkDebugUtilsMessengerCreateInfoEXT CreateDebugMessengerCreateInfo()
 		{
-			PFN_vkDebugUtilsMessengerCallbackEXT callback = DebugCallback;
-
+			/* FIXME: There's some weird undefined memory bug that happens
+			 * if VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT is included
+			 * in this bitmask. Haven't figured out what causes it yet...
+			 * 
+			 * -caleb
+			 */
 			VkDebugUtilsMessageSeverityFlagBitsEXT severityFlags =
-				  VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT
-				| VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT
-				| VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
-				| VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
+				VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT
+			      | VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
+			      | VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
 
 			VkDebugUtilsMessageTypeFlagBitsEXT messageFlags =
 				  VkDebugUtilsMessageTypeFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
-				| VkDebugUtilsMessageTypeFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT
-				| VkDebugUtilsMessageTypeFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT;
+				| VkDebugUtilsMessageTypeFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT
+				| VkDebugUtilsMessageTypeFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 
 			VkDebugUtilsMessengerCreateInfoEXT createInfo = new VkDebugUtilsMessengerCreateInfoEXT
 			{
@@ -202,17 +223,24 @@ namespace Microsoft.Xna.Framework.Graphics
 				flags = 0,
 				messageSeverity = severityFlags,
 				messageType = messageFlags,
-				pfnUserCallback = Marshal.GetFunctionPointerForDelegate(callback),
+				pfnUserCallback = Marshal.GetFunctionPointerForDelegate(
+					(PFN_vkDebugUtilsMessengerCallbackEXT) DebugCallback
+				),
 				pUserData = IntPtr.Zero
 			};
 
+			return createInfo;
+		}
+
+		private unsafe void InitDebugMessenger()
+		{
+			VkDebugUtilsMessengerCreateInfoEXT createInfo = CreateDebugMessengerCreateInfo();
 			VkResult res = vkCreateDebugUtilsMessengerEXT(
 				Instance,
 				&createInfo,
 				IntPtr.Zero,
 				out DebugMessenger
 			);
-
 			if (res != VkResult.VK_SUCCESS)
 			{
 				throw new Exception("Could not initialize debug messenger! Error: " + res);
@@ -230,19 +258,42 @@ namespace Microsoft.Xna.Framework.Graphics
 			if (messageSeverity == VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
 			{
 				// FIXME: Should we throw an exception here? -caleb
-				FNALoggerEXT.LogError(message);
+				FNALoggerEXT.LogError("ERROR: " + message);
 			}
 			else if (messageSeverity == VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
 			{
-				FNALoggerEXT.LogWarn(message);
+				FNALoggerEXT.LogWarn("WARNING: " + message);
 			}
 			else
 			{
-				FNALoggerEXT.LogInfo(message);
+				FNALoggerEXT.LogInfo("INFO: " + message);
 			}
 
 			UTF8_FreeNativeStrings();
 			return 0;
+		}
+
+		private unsafe VkQueueFamilyProperties[] GetQueueFamilies(IntPtr physicalDevice)
+		{
+			// Returns all supported queue families for the given GPU
+			uint queueFamilyCount;
+			vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, out queueFamilyCount, null);
+			VkQueueFamilyProperties[] queueFamilies = new VkQueueFamilyProperties[queueFamilyCount];
+			fixed (VkQueueFamilyProperties* queueFamiliesPtr = queueFamilies)
+			{
+				vkGetPhysicalDeviceQueueFamilyProperties(
+					physicalDevice,
+					out queueFamilyCount,
+					queueFamiliesPtr
+				);
+			}
+
+			return queueFamilies;
+		}
+
+		private bool QueueFamilySupportsGraphics(VkQueueFamilyProperties family)
+		{
+			return (family.queueFlags & VkQueueFlagBits.VK_QUEUE_GRAPHICS_BIT) != 0;
 		}
 
 		private unsafe void SelectPhysicalDevice()
@@ -251,57 +302,65 @@ namespace Microsoft.Xna.Framework.Graphics
 			uint physicalDeviceCount;
 			vkEnumeratePhysicalDevices(Instance, out physicalDeviceCount, null);
 			IntPtr[] physicalDevices = new IntPtr[physicalDeviceCount];
-			fixed (IntPtr* ptr = physicalDevices)
+			fixed (IntPtr* physicalDevicesPtr = physicalDevices)
 			{
-				vkEnumeratePhysicalDevices(Instance, out physicalDeviceCount, ptr);
+				vkEnumeratePhysicalDevices(Instance, out physicalDeviceCount, physicalDevicesPtr);
 			}
 
-			// Search for the ideal physical device
+			/* To find the ideal physical device, each GPU is assigned
+			 * a score based on its properties and features. The device
+			 * with the most points "wins" and becomes our PhysicalDevice.
+			 */
 			int[] scores = new int[physicalDeviceCount];
-			int[] graphicsQueueIndices = new int[physicalDeviceCount];
-			for (int i = 0; i < scores.Length; i += 1)
-			{
-				// Get all supported queue families
-				uint queueFamilyCount;
-				vkGetPhysicalDeviceQueueFamilyProperties(physicalDevices[i], out queueFamilyCount, null);
-				VkQueueFamilyProperties[] queueFamilies = new VkQueueFamilyProperties[queueFamilyCount];
-				fixed (VkQueueFamilyProperties* ptr = queueFamilies)
-				{
-					vkGetPhysicalDeviceQueueFamilyProperties(physicalDevices[i], out queueFamilyCount, ptr);
-				}
 
+			/* We also need to remember the location of each GPU's
+			 * first graphics queue family. This is used when creating
+			 * a logical device.
+			 */
+			int[] graphicsQueueFamilyIndices = new int[physicalDeviceCount];
+
+			// Begin the competition for the best physical device!
+			for (int i = 0; i < physicalDeviceCount; i += 1)
+			{
 				// The physical device MUST have at least one graphics queue family
-				bool supportsGraphicsQueues = false;
-				for (int j = 0; j < queueFamilyCount; j += 1)
+				graphicsQueueFamilyIndices[i] = -1;
+				VkQueueFamilyProperties[] families = GetQueueFamilies(physicalDevices[i]);
+				for (int j = 0; j < families.Length; j += 1)
 				{
-					if ((queueFamilies[j].queueFlags & VkQueueFlagBits.VK_QUEUE_GRAPHICS_BIT) != 0)
+					if (QueueFamilySupportsGraphics(families[j]))
 					{
 						// This queue family supports graphics!
-						supportsGraphicsQueues = true;
-						graphicsQueueIndices[i] = j;
+						graphicsQueueFamilyIndices[i] = j;
 						break;
 					}
 				}
-				if (!supportsGraphicsQueues)
+				if (graphicsQueueFamilyIndices[i] == -1)
 				{
 					// There's no graphics support on this GPU. Skip!
 					scores[i] = int.MinValue;
 					continue;
 				}
 
-				// Check for optional properties and features
+				// Score the device properties and features
 				VkPhysicalDeviceProperties props;
-				VkPhysicalDeviceFeatures features;
 				vkGetPhysicalDeviceProperties(physicalDevices[i], out props);
-				vkGetPhysicalDeviceFeatures(physicalDevices[i], out features);
 
-				// Discrete GPU > Integrated GPU > Anything else
+				// discrete GPU > integrated GPU > anything else
 				if (props.deviceType == VkPhysicalDeviceType.VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
 					scores[i] += 100;
 				else if (props.deviceType == VkPhysicalDeviceType.VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
 					scores[i] += 50;
 
-				// FIXME: What else do we care about...? -caleb
+				// FIXME: Other GPU properties to check?
+
+				VkPhysicalDeviceFeatures features;
+				vkGetPhysicalDeviceFeatures(physicalDevices[i], out features);
+
+				/* FIXME: What features should we check for?
+				 * And if they exist, should we store them for logical device creation?
+				 * 
+				 * -caleb
+				 */
 			}
 
 			// Determine the winner
@@ -312,9 +371,7 @@ namespace Microsoft.Xna.Framework.Graphics
 				{
 					bestScore = scores[i];
 					PhysicalDevice = physicalDevices[i];
-
-					// We need this when we create the logical device.
-					graphicsQueueFamilyIndex = graphicsQueueIndices[i];
+					graphicsQueueFamilyIndex = (uint) graphicsQueueFamilyIndices[i];
 				}
 			}
 			if (bestScore == -1)
@@ -323,9 +380,72 @@ namespace Microsoft.Xna.Framework.Graphics
 			}
 		}
 
-		private void CreateLogicalDevice()
+		private unsafe void CreateLogicalDevice()
 		{
+			// Create the graphics queue
+			float priority = 1.0f;
+			VkDeviceQueueCreateInfo graphicsQueueCreateInfo = new VkDeviceQueueCreateInfo
+			{
+				sType = VkStructureType.VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+				pNext = IntPtr.Zero,
+				flags = 0,
+				queueCount = 1,
+				pQueuePriorities = &priority,
+				queueFamilyIndex = (uint) graphicsQueueFamilyIndex
+			};
 
+			// Bundle all the queue create info into an array
+			VkDeviceQueueCreateInfo[] queueCreateInfos =
+			{
+				graphicsQueueCreateInfo
+			};
+
+			// Get all supported device extensions
+			uint extensionCount;
+			vkEnumerateDeviceExtensionProperties(PhysicalDevice, IntPtr.Zero, out extensionCount, null);
+			VkExtensionProperties[] extensions = new VkExtensionProperties[extensionCount];
+			fixed (VkExtensionProperties* extptr = extensions)
+			{
+				vkEnumerateDeviceExtensionProperties(
+					PhysicalDevice,
+					IntPtr.Zero,
+					out extensionCount,
+					extptr
+				);
+			}
+
+			// FIXME: Are there any device extensions that we want...?
+			IntPtr[] extensionNames = { };
+
+			// Prepare for device creation
+			VkDeviceCreateInfo deviceCreateInfo;
+			fixed (VkDeviceQueueCreateInfo* queueCreateInfosPtr = queueCreateInfos)
+			{
+				fixed (IntPtr* extensionNamesPtr = extensionNames)
+				{
+					deviceCreateInfo = new VkDeviceCreateInfo
+					{
+						sType = VkStructureType.VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+						pNext = IntPtr.Zero,
+						flags = 0,
+						queueCreateInfoCount = (uint) queueCreateInfos.Length,
+						pQueueCreateInfos = queueCreateInfosPtr,
+
+						// FIXME: Should these be the same as instance layers?
+						enabledLayerCount = 0,
+						ppEnabledLayerNames = null,
+
+						enabledExtensionCount = (uint) extensionNames.Length,
+						ppEnabledExtensionNames = extensionNamesPtr,
+
+						// FIXME: Should we keep track of which physical device features to enable?
+						pEnabledFeatures = null
+					};
+				}
+			}
+
+			// Create the device!
+			vkCreateDevice(PhysicalDevice, &deviceCreateInfo, IntPtr.Zero, out Device);
 		}
 
 		public Color BlendFactor { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }

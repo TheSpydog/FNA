@@ -599,6 +599,12 @@ namespace Microsoft.Xna.Framework.Graphics
 			VK_QUEUE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
 		}
 
+		enum VkDeviceQueueCreateFlagBits
+		{
+			VK_DEVICE_QUEUE_CREATE_PROTECTED_BIT = 0x00000001,
+			VK_DEVICE_QUEUE_CREATE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
+		}
+
 		#endregion
 
 		#region Private Constants
@@ -630,9 +636,9 @@ namespace Microsoft.Xna.Framework.Graphics
 			public uint flags;
 			public VkApplicationInfo* pApplicationInfo;
 			public uint enabledLayerCount;
-			public IntPtr ppEnabledLayerNames;
+			public IntPtr* ppEnabledLayerNames;
 			public uint enabledExtensionCount;
-			public IntPtr ppEnabledExtensionNames;
+			public IntPtr* ppEnabledExtensionNames;
 		}
 
 		private unsafe struct VkExtensionProperties
@@ -863,6 +869,30 @@ namespace Microsoft.Xna.Framework.Graphics
 			public VkExtent3D minImageTransferGranularity;
 		}
 
+		private unsafe struct VkDeviceCreateInfo
+		{
+			public VkStructureType sType;
+			public IntPtr pNext;
+			public uint flags;
+			public uint queueCreateInfoCount;
+			public VkDeviceQueueCreateInfo* pQueueCreateInfos;
+			public uint enabledLayerCount;
+			public IntPtr* ppEnabledLayerNames;
+			public uint enabledExtensionCount;
+			public IntPtr* ppEnabledExtensionNames;
+			public VkPhysicalDeviceFeatures* pEnabledFeatures;
+		}
+
+		private unsafe struct VkDeviceQueueCreateInfo
+		{
+			public VkStructureType sType;
+			public IntPtr pNext;
+			public VkDeviceQueueCreateFlagBits flags;
+			public uint queueFamilyIndex;
+			public uint queueCount;
+			public float* pQueuePriorities;
+		}
+
 		#region VK_KHR_debug_utils
 
 		private unsafe struct VkDebugUtilsMessengerCallbackDataEXT
@@ -1006,6 +1036,18 @@ namespace Microsoft.Xna.Framework.Graphics
 				"vkGetPhysicalDeviceQueueFamilyProperties",
 				typeof(GetPhysicalDeviceQueueFamilyProperties)
 			);
+			vkCreateDevice = (CreateDevice) GetProcAddress(
+				"vkCreateDevice",
+				typeof(CreateDevice)
+			);
+			vkEnumerateDeviceExtensionProperties = (EnumerateDeviceExtensionProperties) GetProcAddress(
+				"vkEnumerateDeviceExtensionProperties",
+				typeof(EnumerateDeviceExtensionProperties)
+			);
+			vkGetDeviceQueue = (GetDeviceQueue) GetProcAddress(
+				"vkGetDeviceQueue",
+				typeof(GetDeviceQueue)
+			);
 
 			if (validationEnabled)
 			{
@@ -1027,8 +1069,8 @@ namespace Microsoft.Xna.Framework.Graphics
 		);
 		private GetInstanceProcAddr vkGetInstanceProcAddr;
 
-		private delegate VkResult CreateInstance(
-			IntPtr pCreateInfo,
+		private unsafe delegate VkResult CreateInstance(
+			VkInstanceCreateInfo* pCreateInfo,
 			IntPtr pAllocator,
 			out IntPtr pInstance
 		);
@@ -1078,6 +1120,30 @@ namespace Microsoft.Xna.Framework.Graphics
 			VkQueueFamilyProperties* queueFamilies
 		);
 		private GetPhysicalDeviceQueueFamilyProperties vkGetPhysicalDeviceQueueFamilyProperties;
+
+		private unsafe delegate VkResult CreateDevice(
+			IntPtr physicalDevice,
+			VkDeviceCreateInfo* pCreateInfo,
+			IntPtr pAllocator,
+			out IntPtr device
+		);
+		private CreateDevice vkCreateDevice;
+
+		private unsafe delegate VkResult EnumerateDeviceExtensionProperties(
+			IntPtr physicalDevice,
+			IntPtr pLayerName,
+			out uint propertyCount,
+			VkExtensionProperties* properties
+		);
+		private EnumerateDeviceExtensionProperties vkEnumerateDeviceExtensionProperties;
+
+		private delegate void GetDeviceQueue(
+			IntPtr device,
+			uint queueFamilyIndex,
+			uint queueIndex,
+			out IntPtr pQueue
+		);
+		private GetDeviceQueue vkGetDeviceQueue;
 
 		#region VK_KHR_debug_utils
 
