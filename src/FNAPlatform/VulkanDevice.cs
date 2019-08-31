@@ -159,13 +159,6 @@ namespace Microsoft.Xna.Framework.Graphics
 				layers.Add(UTF8_ToNative("VK_LAYER_KHRONOS_validation"));
 			}
 
-			// Optionally apply validation to instance creation / destruction
-			VkDebugUtilsMessengerCreateInfoEXT instanceDebugMessengerCreateInfo = new VkDebugUtilsMessengerCreateInfoEXT();
-			if (validationEnabled)
-			{
-				instanceDebugMessengerCreateInfo = CreateDebugMessengerCreateInfo();
-			}
-
 			// Create the Vulkan instance
 			VkInstanceCreateInfo appCreateInfo;
 			IntPtr[] extensionsArray = extensions.ToArray();
@@ -177,7 +170,7 @@ namespace Microsoft.Xna.Framework.Graphics
 					appCreateInfo = new VkInstanceCreateInfo
 					{
 						sType = VkStructureType.VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-						pNext = validationEnabled ? (IntPtr) (&instanceDebugMessengerCreateInfo) : IntPtr.Zero,
+						pNext = IntPtr.Zero,
 						flags = 0,
 						pApplicationInfo = &appInfo,
 						enabledLayerCount = (uint) layersArray.Length,
@@ -198,14 +191,8 @@ namespace Microsoft.Xna.Framework.Graphics
 			UTF8_FreeNativeStrings();
 		}
 
-		private unsafe VkDebugUtilsMessengerCreateInfoEXT CreateDebugMessengerCreateInfo()
+		private unsafe void InitDebugMessenger()
 		{
-			/* FIXME: There's some weird undefined memory bug that happens
-			 * if VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT is included
-			 * in this bitmask. Haven't figured out what causes it yet...
-			 * 
-			 * -caleb
-			 */
 			VkDebugUtilsMessageSeverityFlagBitsEXT severityFlags =
 				VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT
 			      | VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
@@ -229,12 +216,6 @@ namespace Microsoft.Xna.Framework.Graphics
 				pUserData = IntPtr.Zero
 			};
 
-			return createInfo;
-		}
-
-		private unsafe void InitDebugMessenger()
-		{
-			VkDebugUtilsMessengerCreateInfoEXT createInfo = CreateDebugMessengerCreateInfo();
 			VkResult res = vkCreateDebugUtilsMessengerEXT(
 				Instance,
 				&createInfo,
@@ -273,24 +254,6 @@ namespace Microsoft.Xna.Framework.Graphics
 			return 0;
 		}
 
-		private unsafe VkQueueFamilyProperties[] GetQueueFamilies(IntPtr physicalDevice)
-		{
-			// Returns all supported queue families for the given GPU
-			uint queueFamilyCount;
-			vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, out queueFamilyCount, null);
-			VkQueueFamilyProperties[] queueFamilies = new VkQueueFamilyProperties[queueFamilyCount];
-			fixed (VkQueueFamilyProperties* queueFamiliesPtr = queueFamilies)
-			{
-				vkGetPhysicalDeviceQueueFamilyProperties(
-					physicalDevice,
-					out queueFamilyCount,
-					queueFamiliesPtr
-				);
-			}
-
-			return queueFamilies;
-		}
-
 		private bool QueueFamilySupportsGraphics(VkQueueFamilyProperties family)
 		{
 			return (family.queueFlags & VkQueueFlagBits.VK_QUEUE_GRAPHICS_BIT) != 0;
@@ -322,12 +285,24 @@ namespace Microsoft.Xna.Framework.Graphics
 			// Begin the competition for the best physical device!
 			for (int i = 0; i < physicalDeviceCount; i += 1)
 			{
+				// Get all queue families supported by this device
+				uint queueFamilyCount;
+				vkGetPhysicalDeviceQueueFamilyProperties(physicalDevices[i], out queueFamilyCount, null);
+				VkQueueFamilyProperties[] queueFamilies = new VkQueueFamilyProperties[queueFamilyCount];
+				fixed (VkQueueFamilyProperties* queueFamiliesPtr = queueFamilies)
+				{
+					vkGetPhysicalDeviceQueueFamilyProperties(
+						physicalDevices[i],
+						out queueFamilyCount,
+						queueFamiliesPtr
+					);
+				}
+
 				// The physical device MUST have at least one graphics queue family
 				graphicsQueueFamilyIndices[i] = -1;
-				VkQueueFamilyProperties[] families = GetQueueFamilies(physicalDevices[i]);
-				for (int j = 0; j < families.Length; j += 1)
+				for (int j = 0; j < queueFamilies.Length; j += 1)
 				{
-					if (QueueFamilySupportsGraphics(families[j]))
+					if (QueueFamilySupportsGraphics(queueFamilies[j]))
 					{
 						// This queue family supports graphics!
 						graphicsQueueFamilyIndices[i] = j;
@@ -394,12 +369,6 @@ namespace Microsoft.Xna.Framework.Graphics
 				queueFamilyIndex = (uint) graphicsQueueFamilyIndex
 			};
 
-			// Bundle all the queue create info into an array
-			VkDeviceQueueCreateInfo[] queueCreateInfos =
-			{
-				graphicsQueueCreateInfo
-			};
-
 			// Get all supported device extensions
 			uint extensionCount;
 			vkEnumerateDeviceExtensionProperties(PhysicalDevice, IntPtr.Zero, out extensionCount, null);
@@ -419,29 +388,26 @@ namespace Microsoft.Xna.Framework.Graphics
 
 			// Prepare for device creation
 			VkDeviceCreateInfo deviceCreateInfo;
-			fixed (VkDeviceQueueCreateInfo* queueCreateInfosPtr = queueCreateInfos)
+			fixed (IntPtr* extensionNamesPtr = extensionNames)
 			{
-				fixed (IntPtr* extensionNamesPtr = extensionNames)
+				deviceCreateInfo = new VkDeviceCreateInfo
 				{
-					deviceCreateInfo = new VkDeviceCreateInfo
-					{
-						sType = VkStructureType.VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-						pNext = IntPtr.Zero,
-						flags = 0,
-						queueCreateInfoCount = (uint) queueCreateInfos.Length,
-						pQueueCreateInfos = queueCreateInfosPtr,
+					sType = VkStructureType.VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+					pNext = IntPtr.Zero,
+					flags = 0,
+					queueCreateInfoCount = 1,
+					pQueueCreateInfos = &graphicsQueueCreateInfo,
 
-						// FIXME: Should these be the same as instance layers?
-						enabledLayerCount = 0,
-						ppEnabledLayerNames = null,
+					// FIXME: Should these be the same as instance layers?
+					enabledLayerCount = 0,
+					ppEnabledLayerNames = null,
 
-						enabledExtensionCount = (uint) extensionNames.Length,
-						ppEnabledExtensionNames = extensionNamesPtr,
+					enabledExtensionCount = (uint) extensionNames.Length,
+					ppEnabledExtensionNames = extensionNamesPtr,
 
-						// FIXME: Should we keep track of which physical device features to enable?
-						pEnabledFeatures = null
-					};
-				}
+					// FIXME: Should we keep track of which physical device features to enable?
+					pEnabledFeatures = null
+				};
 			}
 
 			// Create the device!
