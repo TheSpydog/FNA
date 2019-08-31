@@ -11,7 +11,6 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using Microsoft.Xna.Framework.Graphics;
 using SDL2;
 #endregion
 
@@ -20,15 +19,18 @@ namespace Microsoft.Xna.Framework.Graphics
 	internal partial class VulkanDevice : IGLDevice
 	{
 		private IntPtr Instance;
+		private ulong WindowSurface;
 		private IntPtr PhysicalDevice;
 		private IntPtr Device;
 		private IntPtr GraphicsQueue;
+		private IntPtr PresentationQueue;
 
 		private uint graphicsQueueFamilyIndex;
+		private uint presentationQueueFamilyIndex;
 
 		private bool renderdocEnabled;
 		private bool validationEnabled;
-		private IntPtr DebugMessenger;
+		private ulong DebugMessenger;
 
 		public VulkanDevice(
 			PresentationParameters presentationParameters,
@@ -44,11 +46,13 @@ namespace Microsoft.Xna.Framework.Graphics
 			{
 				InitDebugMessenger();
 			}
+			CreateWindowSurface(presentationParameters.DeviceWindowHandle);
 			SelectPhysicalDevice();
 			CreateLogicalDevice();
 
-			// Store a handle to the graphics queue
+			// Store a handle to the graphics and presentation queues
 			vkGetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, out GraphicsQueue);
+			vkGetDeviceQueue(Device, presentationQueueFamilyIndex, 0, out PresentationQueue);
 		}
 
 		private unsafe bool InstanceExtensionSupported(string extName, VkExtensionProperties[] extensions)
@@ -86,7 +90,7 @@ namespace Microsoft.Xna.Framework.Graphics
 				sType = VkStructureType.VK_STRUCTURE_TYPE_APPLICATION_INFO,
 				pNext = IntPtr.Zero,
 				pApplicationName = UTF8_ToNative(appName),
-				applicationVersion = VK_MAKE_VERSION(1, 0, 0),
+				applicationVersion = VK_MAKE_VERSION(1, 0, 0), // FIXME: Should this be automatically set?
 				pEngineName = UTF8_ToNative("FNA"),
 				engineVersion = VK_MAKE_VERSION(19, 9, 0), // FIXME: What version should go here?
 				apiVersion = VK_MAKE_VERSION(1, 0, 0),
@@ -144,14 +148,14 @@ namespace Microsoft.Xna.Framework.Graphics
 			List<IntPtr> layers = new List<IntPtr>();
 			if (renderdocEnabled)
 			{
-				string layername = "VK_LAYER_RENDERDOC_Capture";
-				if (InstanceLayerSupported(layername, availableLayers))
+				string renderdocLayerName = "VK_LAYER_RENDERDOC_Capture";
+				if (InstanceLayerSupported(renderdocLayerName, availableLayers))
 				{
-					layers.Add(UTF8_ToNative(layername));
+					layers.Add(UTF8_ToNative(renderdocLayerName));
 				}
 				else
 				{
-					FNALoggerEXT.LogWarn(layername + " not supported!");
+					FNALoggerEXT.LogWarn(renderdocLayerName + " not supported!");
 				}
 			}
 			if (validationEnabled)
@@ -180,7 +184,6 @@ namespace Microsoft.Xna.Framework.Graphics
 					};
 				}
 			}
-
 			VkResult res = vkCreateInstance(&appCreateInfo, IntPtr.Zero, out Instance);
 			if (res != VkResult.VK_SUCCESS)
 			{
@@ -196,6 +199,7 @@ namespace Microsoft.Xna.Framework.Graphics
 			VkDebugUtilsMessageSeverityFlagBitsEXT severityFlags =
 				VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT
 			      | VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
+			      | VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT
 			      | VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
 
 			VkDebugUtilsMessageTypeFlagBitsEXT messageFlags =
@@ -259,6 +263,37 @@ namespace Microsoft.Xna.Framework.Graphics
 			return (family.queueFlags & VkQueueFlagBits.VK_QUEUE_GRAPHICS_BIT) != 0;
 		}
 
+		private bool QueueFamilySupportsPresentation(IntPtr physicalDevice, int queueFamilyIndex)
+		{
+			uint supportsPresentation = 0;
+			VkResult res = vkGetPhysicalDeviceSurfaceSupportKHR(
+				physicalDevice,
+				(uint) queueFamilyIndex,
+				WindowSurface,
+				out supportsPresentation
+			);
+			if (res != VkResult.VK_SUCCESS)
+			{
+				throw new Exception(
+					"Could not query queue family presentation capability! Error: " + res
+				);
+			}
+			return (supportsPresentation == 1);
+		}
+
+		private void CreateWindowSurface(IntPtr window)
+		{
+			SDL.SDL_bool result = SDL.SDL_Vulkan_CreateSurface(
+				window,
+				Instance,
+				out WindowSurface
+			);
+			if (result == 0)
+			{
+				throw new Exception("Could not create Vulkan window surface!");
+			}
+		}
+
 		private unsafe void SelectPhysicalDevice()
 		{
 			// Get all physical devices
@@ -277,17 +312,22 @@ namespace Microsoft.Xna.Framework.Graphics
 			int[] scores = new int[physicalDeviceCount];
 
 			/* We also need to remember the location of each GPU's
-			 * first graphics queue family. This is used when creating
-			 * a logical device.
+			 * first graphics queue family and presentation queue
+			 * family. These are used when creating a logical device.
 			 */
 			int[] graphicsQueueFamilyIndices = new int[physicalDeviceCount];
+			int[] presentationQueueFamilyIndices = new int[physicalDeviceCount];
 
 			// Begin the competition for the best physical device!
 			for (int i = 0; i < physicalDeviceCount; i += 1)
 			{
 				// Get all queue families supported by this device
 				uint queueFamilyCount;
-				vkGetPhysicalDeviceQueueFamilyProperties(physicalDevices[i], out queueFamilyCount, null);
+				vkGetPhysicalDeviceQueueFamilyProperties(
+					physicalDevices[i],
+					out queueFamilyCount,
+					null
+				);
 				VkQueueFamilyProperties[] queueFamilies = new VkQueueFamilyProperties[queueFamilyCount];
 				fixed (VkQueueFamilyProperties* queueFamiliesPtr = queueFamilies)
 				{
@@ -298,20 +338,35 @@ namespace Microsoft.Xna.Framework.Graphics
 					);
 				}
 
-				// The physical device MUST have at least one graphics queue family
+				/* The physical device MUST have at least one graphics
+				 * queue family and one presentation queue family.
+				 */
 				graphicsQueueFamilyIndices[i] = -1;
+				presentationQueueFamilyIndices[i] = -1;
+
 				for (int j = 0; j < queueFamilies.Length; j += 1)
 				{
-					if (QueueFamilySupportsGraphics(queueFamilies[j]))
+					if (graphicsQueueFamilyIndices[i] == -1)
 					{
-						// This queue family supports graphics!
-						graphicsQueueFamilyIndices[i] = j;
-						break;
+						if (QueueFamilySupportsGraphics(queueFamilies[j]))
+						{
+							// This queue family supports graphics!
+							graphicsQueueFamilyIndices[i] = j;
+						}
+					}
+
+					if (presentationQueueFamilyIndices[i] == -1)
+					{
+						if (QueueFamilySupportsPresentation(physicalDevices[i], j))
+						{
+							// This queue family supports presentation!
+							presentationQueueFamilyIndices[i] = j;
+						}
 					}
 				}
-				if (graphicsQueueFamilyIndices[i] == -1)
+				if (graphicsQueueFamilyIndices[i] == -1 || presentationQueueFamilyIndices[i] == -1)
 				{
-					// There's no graphics support on this GPU. Skip!
+					// This GPU is useless to us. Skip it!
 					scores[i] = int.MinValue;
 					continue;
 				}
@@ -347,6 +402,7 @@ namespace Microsoft.Xna.Framework.Graphics
 					bestScore = scores[i];
 					PhysicalDevice = physicalDevices[i];
 					graphicsQueueFamilyIndex = (uint) graphicsQueueFamilyIndices[i];
+					presentationQueueFamilyIndex = (uint) presentationQueueFamilyIndices[i];
 				}
 			}
 			if (bestScore == -1)
@@ -357,7 +413,7 @@ namespace Microsoft.Xna.Framework.Graphics
 
 		private unsafe void CreateLogicalDevice()
 		{
-			// Create the graphics queue
+			// Create the graphics queue CreateInfo
 			float priority = 1.0f;
 			VkDeviceQueueCreateInfo graphicsQueueCreateInfo = new VkDeviceQueueCreateInfo
 			{
@@ -367,6 +423,24 @@ namespace Microsoft.Xna.Framework.Graphics
 				queueCount = 1,
 				pQueuePriorities = &priority,
 				queueFamilyIndex = (uint) graphicsQueueFamilyIndex
+			};
+
+			// Create the presentation queue CreateInfo
+			VkDeviceQueueCreateInfo presentationQueueCreateInfo = new VkDeviceQueueCreateInfo
+			{
+				sType = VkStructureType.VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+				pNext = IntPtr.Zero,
+				flags = 0,
+				queueCount = 1,
+				pQueuePriorities = &priority,
+				queueFamilyIndex = (uint) presentationQueueFamilyIndex
+			};
+
+			// Stuff them into an array
+			VkDeviceQueueCreateInfo[] queueCreateInfos =
+			{
+				graphicsQueueCreateInfo,
+				presentationQueueCreateInfo
 			};
 
 			// Get all supported device extensions
@@ -388,26 +462,29 @@ namespace Microsoft.Xna.Framework.Graphics
 
 			// Prepare for device creation
 			VkDeviceCreateInfo deviceCreateInfo;
-			fixed (IntPtr* extensionNamesPtr = extensionNames)
+			fixed (VkDeviceQueueCreateInfo* queueCreateInfosPtr = queueCreateInfos)
 			{
-				deviceCreateInfo = new VkDeviceCreateInfo
+				fixed (IntPtr* extensionNamesPtr = extensionNames)
 				{
-					sType = VkStructureType.VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-					pNext = IntPtr.Zero,
-					flags = 0,
-					queueCreateInfoCount = 1,
-					pQueueCreateInfos = &graphicsQueueCreateInfo,
+					deviceCreateInfo = new VkDeviceCreateInfo
+					{
+						sType = VkStructureType.VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+						pNext = IntPtr.Zero,
+						flags = 0,
+						queueCreateInfoCount = (uint) queueCreateInfos.Length,
+						pQueueCreateInfos = queueCreateInfosPtr,
 
-					// FIXME: Should these be the same as instance layers?
-					enabledLayerCount = 0,
-					ppEnabledLayerNames = null,
+						// FIXME: Should these be the same as instance layers?
+						enabledLayerCount = 0,
+						ppEnabledLayerNames = null,
 
-					enabledExtensionCount = (uint) extensionNames.Length,
-					ppEnabledExtensionNames = extensionNamesPtr,
+						enabledExtensionCount = (uint) extensionNames.Length,
+						ppEnabledExtensionNames = extensionNamesPtr,
 
-					// FIXME: Should we keep track of which physical device features to enable?
-					pEnabledFeatures = null
-				};
+						// FIXME: Should we keep track of which physical device features to enable?
+						pEnabledFeatures = null
+					};
+				}
 			}
 
 			// Create the device!

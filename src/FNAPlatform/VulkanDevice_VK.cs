@@ -1048,6 +1048,10 @@ namespace Microsoft.Xna.Framework.Graphics
 				"vkGetDeviceQueue",
 				typeof(GetDeviceQueue)
 			);
+			vkGetPhysicalDeviceSurfaceSupportKHR = (GetPhysicalDeviceSurfaceSupportKHR) GetProcAddress(
+				"vkGetPhysicalDeviceSurfaceSupportKHR",
+				typeof(GetPhysicalDeviceSurfaceSupportKHR)
+			);
 
 			if (validationEnabled)
 			{
@@ -1145,13 +1149,21 @@ namespace Microsoft.Xna.Framework.Graphics
 		);
 		private GetDeviceQueue vkGetDeviceQueue;
 
+		private delegate VkResult GetPhysicalDeviceSurfaceSupportKHR(
+			IntPtr physicalDevice,
+			uint queueFamilyIndex,
+			ulong surface,
+			out uint pSupported
+		);
+		private GetPhysicalDeviceSurfaceSupportKHR vkGetPhysicalDeviceSurfaceSupportKHR;
+
 		#region VK_KHR_debug_utils
 
 		private unsafe delegate VkResult CreateDebugUtilsMessengerEXT(
 			IntPtr instance,
 			VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
 			IntPtr pAllocator,
-			out IntPtr pMessenger
+			out ulong pMessenger
 		);
 		private CreateDebugUtilsMessengerEXT vkCreateDebugUtilsMessengerEXT;
 
