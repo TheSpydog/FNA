@@ -14,6 +14,26 @@ using System.Runtime.InteropServices;
 using SDL2;
 #endregion
 
+// FIXME: The environment variables need proper documentation
+
+/* ==================================
+ * VulkanDevice Environment Variables
+ * ==================================
+ *
+ * FNA_VULKAN_ENABLE_RENDERDOC
+ *	Enables the VK_LAYER_RENDERDOC_Capture validation layer.
+ *	Set this to "1" to enable the layer.
+ *	If the layer is not supported, a warning will be logged to the output.
+ *
+ * FNA_VULKAN_ENABLE_VALIDATION
+ *	Enables the VK_EXT_debug_utils extension and VK_LAYER_KHRONOS_VALIDATION layer.
+ *	This allows for extensive logging of Vulkan errors, warnings, and general info.
+ *	Set this to "1" to enable standard validation logging.
+ *	Set this to "2" for VERY VERBOSE validation logging that reports all driver activity.
+ *	If the layer is not supported, a warning will be logged to the output.
+ *
+ */
+
 namespace Microsoft.Xna.Framework.Graphics
 {
 	internal partial class VulkanDevice : IGLDevice
@@ -30,17 +50,24 @@ namespace Microsoft.Xna.Framework.Graphics
 
 		private bool renderdocEnabled;
 		private bool validationEnabled;
+		private bool verboseValidationEnabled;
 		private ulong DebugMessenger;
 
 		public VulkanDevice(
 			PresentationParameters presentationParameters,
 			GraphicsAdapter adapter
 		) {
+			// RenderDoc environment variable
 			renderdocEnabled = Environment.GetEnvironmentVariable("FNA_VULKAN_ENABLE_RENDERDOC") == "1";
-			validationEnabled = Environment.GetEnvironmentVariable("FNA_VULKAN_ENABLE_VALIDATION") == "1";
 
+			// Validation environment variable
+			string validationEnv = Environment.GetEnvironmentVariable("FNA_VULKAN_ENABLE_VALIDATION");
+			validationEnabled = (validationEnv == "1" || validationEnv == "2");
+			verboseValidationEnabled = (validationEnv == "2");
+
+			// Initialize Vulkan
 			LoadGlobalEntryPoints();
-			InitVulkanInstance(presentationParameters.DeviceWindowHandle);
+			CreateVulkanInstance(presentationParameters.DeviceWindowHandle);
 			LoadInstanceEntryPoints();
 			if (validationEnabled)
 			{
@@ -77,7 +104,7 @@ namespace Microsoft.Xna.Framework.Graphics
 			return false;
 		}
 
-		private unsafe void InitVulkanInstance(IntPtr windowHandle)
+		private unsafe void CreateVulkanInstance(IntPtr windowHandle)
 		{
 			// Describe app metadata
 			string appName = System.Reflection.Assembly.GetEntryAssembly().GetName().Name;
@@ -108,12 +135,14 @@ namespace Microsoft.Xna.Framework.Graphics
 			// Generate a list of all instance extensions we will use
 			List<IntPtr> extensions = new List<IntPtr>();
 
+			// SDL2 extensions
 			uint sdlExtCount;
 			SDL.SDL_Vulkan_GetInstanceExtensions(windowHandle, out sdlExtCount, null);
 			IntPtr[] sdlExtensions = new IntPtr[sdlExtCount];
 			SDL.SDL_Vulkan_GetInstanceExtensions(windowHandle, out sdlExtCount, sdlExtensions);
 			extensions.AddRange(sdlExtensions);
 
+			// Debug utility extensions
 			if (validationEnabled)
 			{
 				string debugUtilsExt = "VK_EXT_debug_utils";
@@ -156,7 +185,21 @@ namespace Microsoft.Xna.Framework.Graphics
 			}
 			if (validationEnabled)
 			{
+				/* No need to check if the layer is supported.
+				 * If this code is reached, VK_EXT_debug_utils
+				 * exists so the layer must as well.
+				 * -caleb
+				 */
 				layers.Add(UTF8_ToNative("VK_LAYER_KHRONOS_validation"));
+			}
+
+			// Validate the instance creation/destruction, if needed
+			VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
+			IntPtr pNext = IntPtr.Zero;
+			if (validationEnabled)
+			{
+				debugCreateInfo = CreateDebugMessengerCreateInfo();
+				pNext = (IntPtr) (&debugCreateInfo);
 			}
 
 			// Create the Vulkan instance
@@ -170,7 +213,7 @@ namespace Microsoft.Xna.Framework.Graphics
 					appCreateInfo = new VkInstanceCreateInfo
 					{
 						sType = VkStructureType.VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-						pNext = IntPtr.Zero,
+						pNext = pNext,
 						flags = 0,
 						pApplicationInfo = &appInfo,
 						enabledLayerCount = (uint) layersArray.Length,
@@ -187,20 +230,28 @@ namespace Microsoft.Xna.Framework.Graphics
 			}
 		}
 
-		private unsafe void InitDebugMessenger()
+		private unsafe VkDebugUtilsMessengerCreateInfoEXT CreateDebugMessengerCreateInfo()
 		{
 			VkDebugUtilsMessageSeverityFlagBitsEXT severityFlags =
 				VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT
 			      | VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
-			      //| VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT
 			      | VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
+
+			if (verboseValidationEnabled)
+			{
+				/* This will spew a TON of crap into the output.
+				 * Some of it is useful, most of it not so much.
+				 * -caleb
+				 */
+				severityFlags |= VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
+			}
 
 			VkDebugUtilsMessageTypeFlagBitsEXT messageFlags =
 				  VkDebugUtilsMessageTypeFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
 				| VkDebugUtilsMessageTypeFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT
 				| VkDebugUtilsMessageTypeFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 
-			VkDebugUtilsMessengerCreateInfoEXT createInfo = new VkDebugUtilsMessengerCreateInfoEXT
+			return new VkDebugUtilsMessengerCreateInfoEXT
 			{
 				sType = VkStructureType.VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
 				pNext = IntPtr.Zero,
@@ -212,7 +263,11 @@ namespace Microsoft.Xna.Framework.Graphics
 				),
 				pUserData = IntPtr.Zero
 			};
+		}
 
+		private unsafe void InitDebugMessenger()
+		{
+			VkDebugUtilsMessengerCreateInfoEXT createInfo = CreateDebugMessengerCreateInfo();
 			VkResult res = vkCreateDebugUtilsMessengerEXT(
 				Instance,
 				&createInfo,
@@ -235,8 +290,8 @@ namespace Microsoft.Xna.Framework.Graphics
 
 			if (messageSeverity == VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
 			{
-				// FIXME: Should we throw an exception here? -caleb
-				FNALoggerEXT.LogError("ERROR: " + message);
+				// This is serious, so throw an exception.
+				throw new Exception("Vulkan Error: " + message);
 			}
 			else if (messageSeverity == VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
 			{
@@ -330,8 +385,8 @@ namespace Microsoft.Xna.Framework.Graphics
 					);
 				}
 
-				/* The physical device MUST have at least one graphics
-				 * queue family and one presentation queue family.
+				/* The physical device MUST have at least one graphics queue
+				 * family and one queue family that supports presentation.
 				 */
 				graphicsQueueFamilyIndices[i] = -1;
 				presentationQueueFamilyIndices[i] = -1;
@@ -380,7 +435,6 @@ namespace Microsoft.Xna.Framework.Graphics
 
 				/* FIXME: What features should we check for?
 				 * And if they exist, should we store them for logical device creation?
-				 * 
 				 * -caleb
 				 */
 			}
