@@ -57,10 +57,8 @@ namespace Microsoft.Xna.Framework.Graphics
 			PresentationParameters presentationParameters,
 			GraphicsAdapter adapter
 		) {
-			// RenderDoc environment variable
+			// Handle environment variables
 			renderdocEnabled = Environment.GetEnvironmentVariable("FNA_VULKAN_ENABLE_RENDERDOC") == "1";
-
-			// Validation environment variable
 			string validationEnv = Environment.GetEnvironmentVariable("FNA_VULKAN_ENABLE_VALIDATION");
 			validationEnabled = (validationEnv == "1" || validationEnv == "2");
 			verboseValidationEnabled = (validationEnv == "2");
@@ -76,56 +74,42 @@ namespace Microsoft.Xna.Framework.Graphics
 			CreateWindowSurface(presentationParameters.DeviceWindowHandle);
 			SelectPhysicalDevice();
 			CreateLogicalDevice();
-		}
 
-		private unsafe bool ExtensionSupported(string extName, VkExtensionProperties[] extensions)
-		{
-			foreach (VkExtensionProperties ext in extensions)
-			{
-				if (UTF8_ToManaged((IntPtr) ext.extensionName) == extName)
-				{
-					return true;
-				}
-			}
+			// Print GPU / driver info
+			VkPhysicalDeviceProperties deviceProperties;
+			vkGetPhysicalDeviceProperties(PhysicalDevice, out deviceProperties);
 
-			return false;
-		}
+			string deviceName = GetDriverDeviceName(deviceProperties);
+			string driverVersion = GetDriverVersionInfo(deviceProperties);
+			string driverVendor = GetDriverVendorName(deviceProperties);
 
-		private unsafe bool LayerSupported(string layerName, VkLayerProperties[] layers)
-		{
-			foreach (VkLayerProperties layer in layers)
-			{
-				if (UTF8_ToManaged((IntPtr) layer.layerName) == layerName)
-				{
-					return true;
-				}
-			}
+			FNALoggerEXT.LogInfo("IGLDevice: VulkanDevice");
+			FNALoggerEXT.LogInfo("Vulkan Device: " + deviceName);
+			FNALoggerEXT.LogInfo("Vulkan Driver: " + driverVersion);
+			FNALoggerEXT.LogInfo("Vulkan Vendor: " + driverVendor);
 
-			return false;
-		}
-
-		private unsafe VkExtensionProperties[] GetAllDeviceExtensions(IntPtr physicalDevice)
-		{
-			uint extensionCount;
-			vkEnumerateDeviceExtensionProperties(
-				physicalDevice,
-				IntPtr.Zero,
-				out extensionCount,
-				null
+			/* Check the max multisample count, override parameters if necessary */
+			// FIXME: Is this right?
+			int colorSamples = GetSampleCount(deviceProperties.limits.framebufferColorSampleCounts);
+			int depthSamples = GetSampleCount(deviceProperties.limits.framebufferDepthSampleCounts);
+			int maxSamples = Math.Min(colorSamples, depthSamples);
+			MaxMultiSampleCount = maxSamples;
+			presentationParameters.MultiSampleCount = Math.Min(
+				presentationParameters.MultiSampleCount,
+				MaxMultiSampleCount
 			);
-			VkExtensionProperties[] extensions = new VkExtensionProperties[extensionCount];
-			fixed (VkExtensionProperties* extptr = extensions)
-			{
-				vkEnumerateDeviceExtensionProperties(
-					physicalDevice,
-					IntPtr.Zero,
-					out extensionCount,
-					extptr
-				);
-			}
 
-			return extensions;
+			MaxTextureSlots = (int) deviceProperties.limits.maxPerStageDescriptorSamplers;
+			SupportsDxt1 = FormatSupported(VkFormat.VK_FORMAT_BC1_RGBA_UNORM_BLOCK);
+			SupportsS3tc = (
+				SupportsDxt1 ||
+				FormatSupported(VkFormat.VK_FORMAT_BC3_UNORM_BLOCK) ||
+				FormatSupported(VkFormat.VK_FORMAT_BC5_UNORM_BLOCK)
+			);
+			SupportsHardwareInstancing = true;
 		}
+
+		#region Vulkan Initialization
 
 		private unsafe void CreateVulkanInstance(IntPtr windowHandle)
 		{
@@ -253,41 +237,6 @@ namespace Microsoft.Xna.Framework.Graphics
 			}
 		}
 
-		private unsafe VkDebugUtilsMessengerCreateInfoEXT CreateDebugMessengerCreateInfo()
-		{
-			VkDebugUtilsMessageSeverityFlagBitsEXT severityFlags =
-				VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT
-			      | VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
-			      | VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
-
-			if (verboseValidationEnabled)
-			{
-				/* This will spew a TON of crap into the output.
-				 * Some of it is useful, most of it not so much.
-				 * -caleb
-				 */
-				severityFlags |= VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
-			}
-
-			VkDebugUtilsMessageTypeFlagBitsEXT messageFlags =
-				  VkDebugUtilsMessageTypeFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
-				| VkDebugUtilsMessageTypeFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT
-				| VkDebugUtilsMessageTypeFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-
-			return new VkDebugUtilsMessengerCreateInfoEXT
-			{
-				sType = VkStructureType.VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-				pNext = IntPtr.Zero,
-				flags = 0,
-				messageSeverity = severityFlags,
-				messageType = messageFlags,
-				pfnUserCallback = Marshal.GetFunctionPointerForDelegate(
-					(PFN_vkDebugUtilsMessengerCallbackEXT) DebugCallback
-				),
-				pUserData = IntPtr.Zero
-			};
-		}
-
 		private unsafe void InitDebugMessenger()
 		{
 			VkDebugUtilsMessengerCreateInfoEXT createInfo = CreateDebugMessengerCreateInfo();
@@ -326,29 +275,6 @@ namespace Microsoft.Xna.Framework.Graphics
 			}
 
 			return 0;
-		}
-
-		private bool QueueFamilySupportsGraphics(VkQueueFamilyProperties family)
-		{
-			return (family.queueFlags & VkQueueFlagBits.VK_QUEUE_GRAPHICS_BIT) != 0;
-		}
-
-		private bool QueueFamilySupportsPresentation(IntPtr physicalDevice, int queueFamilyIndex)
-		{
-			uint supportsPresentation = 0;
-			VkResult res = vkGetPhysicalDeviceSurfaceSupportKHR(
-				physicalDevice,
-				(uint) queueFamilyIndex,
-				WindowSurface,
-				out supportsPresentation
-			);
-			if (res != VkResult.VK_SUCCESS)
-			{
-				throw new Exception(
-					"Could not query queue family presentation capability! Error: " + res
-				);
-			}
-			return (supportsPresentation == 1);
 		}
 
 		private void CreateWindowSurface(IntPtr window)
@@ -565,7 +491,7 @@ namespace Microsoft.Xna.Framework.Graphics
 						enabledExtensionCount = (uint) extensionNames.Length,
 						ppEnabledExtensionNames = extensionNamesPtr,
 
-						// FIXME: Should we keep track of which physical device features to enable?
+						// FIXME: Which device features do we want?
 						pEnabledFeatures = null
 					};
 				}
@@ -579,19 +505,238 @@ namespace Microsoft.Xna.Framework.Graphics
 			vkGetDeviceQueue(Device, presentationQueueFamilyIndex, 0, out PresentationQueue);
 		}
 
+		#endregion
+
+		#region Private Vulkan Helper Methods
+
+		private string GetDriverDeviceName(VkPhysicalDeviceProperties properties)
+		{
+			string name;
+			unsafe
+			{
+				name = UTF8_ToManaged((IntPtr) properties.deviceName);
+			}
+			return name;
+		}
+
+		private string GetDriverVersionInfo(VkPhysicalDeviceProperties properties)
+		{
+			return	VK_GetVersionString(properties.apiVersion) + " - Version "
+				+ properties.driverVersion.ToString();
+		}
+
+		private string GetDriverVendorName(VkPhysicalDeviceProperties properties)
+		{
+			switch (properties.vendorID)
+			{
+				case (0x1002):
+					return "AMD";
+				case (0x1010):
+					return "ImgTec";
+				case (0x10DE):
+					return "NVIDIA";
+				case (0x13B5):
+					return "ARM";
+				case (0x5143):
+					return "Qualcomm";
+				case (0x8086):
+					return "Intel";
+				default:
+					return "Unknown";
+			}
+		}
+
+		private int GetSampleCount(VkSampleCountFlagBits flags)
+		{
+			if ((flags & VkSampleCountFlagBits.VK_SAMPLE_COUNT_64_BIT) != 0)
+			{
+				return 64;
+			}
+			else if ((flags & VkSampleCountFlagBits.VK_SAMPLE_COUNT_32_BIT) != 0)
+			{
+				return 32;
+			}
+			else if ((flags & VkSampleCountFlagBits.VK_SAMPLE_COUNT_16_BIT) != 0)
+			{
+				return 16;
+			}
+			else if ((flags & VkSampleCountFlagBits.VK_SAMPLE_COUNT_8_BIT) != 0)
+			{
+				return 8;
+			}
+			else if ((flags & VkSampleCountFlagBits.VK_SAMPLE_COUNT_4_BIT) != 0)
+			{
+				return 4;
+			}
+			else if ((flags & VkSampleCountFlagBits.VK_SAMPLE_COUNT_2_BIT) != 0)
+			{
+				return 2;
+			}
+			else if ((flags & VkSampleCountFlagBits.VK_SAMPLE_COUNT_1_BIT) != 0)
+			{
+				return 1;
+			}
+
+			return 0;
+		}
+
+		private bool FormatSupported(VkFormat format)
+		{
+			VkFormatProperties formatProperties;
+
+			vkGetPhysicalDeviceFormatProperties(
+				PhysicalDevice,
+				format,
+				out formatProperties
+			);
+
+			return	(formatProperties.optimalTilingFeatures != 0
+				|| formatProperties.linearTilingFeatures != 0
+				|| formatProperties.bufferFeatures == 0);
+		}
+
+		private unsafe bool ExtensionSupported(string extName, VkExtensionProperties[] extensions)
+		{
+			foreach (VkExtensionProperties ext in extensions)
+			{
+				if (UTF8_ToManaged((IntPtr)ext.extensionName) == extName)
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		private unsafe bool LayerSupported(string layerName, VkLayerProperties[] layers)
+		{
+			foreach (VkLayerProperties layer in layers)
+			{
+				if (UTF8_ToManaged((IntPtr)layer.layerName) == layerName)
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		private unsafe VkExtensionProperties[] GetAllDeviceExtensions(IntPtr physicalDevice)
+		{
+			uint extensionCount;
+			vkEnumerateDeviceExtensionProperties(
+				physicalDevice,
+				IntPtr.Zero,
+				out extensionCount,
+				null
+			);
+			VkExtensionProperties[] extensions = new VkExtensionProperties[extensionCount];
+			fixed (VkExtensionProperties* extptr = extensions)
+			{
+				vkEnumerateDeviceExtensionProperties(
+					physicalDevice,
+					IntPtr.Zero,
+					out extensionCount,
+					extptr
+				);
+			}
+
+			return extensions;
+		}
+
+		private unsafe VkDebugUtilsMessengerCreateInfoEXT CreateDebugMessengerCreateInfo()
+		{
+			VkDebugUtilsMessageSeverityFlagBitsEXT severityFlags =
+				VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT
+			      | VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
+			      | VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
+
+			if (verboseValidationEnabled)
+			{
+				/* This will spew a TON of crap into the output.
+				 * Some of it is useful, most of it not so much.
+				 * -caleb
+				 */
+			severityFlags |= VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
+			}
+
+			VkDebugUtilsMessageTypeFlagBitsEXT messageFlags =
+				  VkDebugUtilsMessageTypeFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
+				| VkDebugUtilsMessageTypeFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT
+				| VkDebugUtilsMessageTypeFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+
+			return new VkDebugUtilsMessengerCreateInfoEXT
+			{
+				sType = VkStructureType.VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+				pNext = IntPtr.Zero,
+				flags = 0,
+				messageSeverity = severityFlags,
+				messageType = messageFlags,
+				pfnUserCallback = Marshal.GetFunctionPointerForDelegate(
+					(PFN_vkDebugUtilsMessengerCallbackEXT)DebugCallback
+				),
+				pUserData = IntPtr.Zero
+			};
+		}
+
+		private bool QueueFamilySupportsGraphics(VkQueueFamilyProperties family)
+		{
+			return (family.queueFlags & VkQueueFlagBits.VK_QUEUE_GRAPHICS_BIT) != 0;
+		}
+
+		private bool QueueFamilySupportsPresentation(IntPtr physicalDevice, int queueFamilyIndex)
+		{
+			uint supportsPresentation = 0;
+			VkResult res = vkGetPhysicalDeviceSurfaceSupportKHR(
+				physicalDevice,
+				(uint) queueFamilyIndex,
+				WindowSurface,
+				out supportsPresentation
+			);
+			if (res != VkResult.VK_SUCCESS)
+			{
+				throw new Exception(
+					"Could not query queue family presentation capability! Error: " + res
+				);
+			}
+			return (supportsPresentation == 1);
+		}
+
+		#endregion
+
 		public Color BlendFactor { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 		public int MultiSampleMask { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 		public int ReferenceStencil { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
-		public bool SupportsDxt1 => throw new NotImplementedException();
+		public bool SupportsDxt1
+		{
+			get;
+			set;
+		}
 
-		public bool SupportsS3tc => throw new NotImplementedException();
+		public bool SupportsS3tc
+		{
+			get;
+			set;
+		}
 
-		public bool SupportsHardwareInstancing => throw new NotImplementedException();
+		public bool SupportsHardwareInstancing
+		{
+			get;
+			set;
+		}
 
-		public int MaxTextureSlots => throw new NotImplementedException();
+		public int MaxTextureSlots
+		{
+			get;
+			set;
+		}
 
-		public int MaxMultiSampleCount => throw new NotImplementedException();
+		public int MaxMultiSampleCount
+		{
+			get;
+			set;
+		}
 
 		public IGLBackbuffer Backbuffer => throw new NotImplementedException();
 

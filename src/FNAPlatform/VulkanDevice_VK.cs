@@ -21,7 +21,7 @@ namespace Microsoft.Xna.Framework.Graphics
 		#region Private Enums
 
 		// FIXME: Prune this big boi to just what we use.
-		enum VkStructureType
+		private enum VkStructureType
 		{
 			VK_STRUCTURE_TYPE_APPLICATION_INFO = 0,
 			VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO = 1,
@@ -465,7 +465,7 @@ namespace Microsoft.Xna.Framework.Graphics
 			VK_STRUCTURE_TYPE_MAX_ENUM = 0x7FFFFFFF
 		}
 
-		enum VkResult
+		private enum VkResult
 		{
 			VK_SUCCESS = 0,
 			VK_NOT_READY = 1,
@@ -504,7 +504,8 @@ namespace Microsoft.Xna.Framework.Graphics
 			VK_RESULT_MAX_ENUM = 0x7FFFFFFF
 		}
 
-		enum VkDebugUtilsMessageSeverityFlagBitsEXT
+		[Flags]
+		private enum VkDebugUtilsMessageSeverityFlagBitsEXT
 		{
 			VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT = 0x00000001,
 			VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT = 0x00000010,
@@ -513,7 +514,8 @@ namespace Microsoft.Xna.Framework.Graphics
 			VK_DEBUG_UTILS_MESSAGE_SEVERITY_FLAG_BITS_MAX_ENUM_EXT = 0x7FFFFFFF
 		}
 
-		enum VkDebugUtilsMessageTypeFlagBitsEXT
+		[Flags]
+		private enum VkDebugUtilsMessageTypeFlagBitsEXT
 		{
 			VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT = 0x00000001,
 			VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT = 0x00000002,
@@ -521,7 +523,7 @@ namespace Microsoft.Xna.Framework.Graphics
 			VK_DEBUG_UTILS_MESSAGE_TYPE_FLAG_BITS_MAX_ENUM_EXT = 0x7FFFFFFF
 		}
 
-		enum VkObjectType
+		private enum VkObjectType
 		{
 			VK_OBJECT_TYPE_UNKNOWN = 0,
 			VK_OBJECT_TYPE_INSTANCE = 1,
@@ -567,7 +569,7 @@ namespace Microsoft.Xna.Framework.Graphics
 			VK_OBJECT_TYPE_MAX_ENUM = 0x7FFFFFFF
 		}
 
-		enum VkPhysicalDeviceType
+		private enum VkPhysicalDeviceType
 		{
 			VK_PHYSICAL_DEVICE_TYPE_OTHER = 0,
 			VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU = 1,
@@ -577,7 +579,8 @@ namespace Microsoft.Xna.Framework.Graphics
 			VK_PHYSICAL_DEVICE_TYPE_MAX_ENUM = 0x7FFFFFFF
 		}
 
-		enum VkSampleCountFlagBits
+		[Flags]
+		private enum VkSampleCountFlagBits
 		{
 			VK_SAMPLE_COUNT_1_BIT = 0x00000001,
 			VK_SAMPLE_COUNT_2_BIT = 0x00000002,
@@ -589,7 +592,8 @@ namespace Microsoft.Xna.Framework.Graphics
 			VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
 		}
 
-		enum VkQueueFlagBits
+		[Flags]
+		private enum VkQueueFlagBits
 		{
 			VK_QUEUE_GRAPHICS_BIT = 0x00000001,
 			VK_QUEUE_COMPUTE_BIT = 0x00000002,
@@ -599,10 +603,294 @@ namespace Microsoft.Xna.Framework.Graphics
 			VK_QUEUE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
 		}
 
-		enum VkDeviceQueueCreateFlagBits
+		[Flags]
+		private enum VkDeviceQueueCreateFlagBits
 		{
 			VK_DEVICE_QUEUE_CREATE_PROTECTED_BIT = 0x00000001,
 			VK_DEVICE_QUEUE_CREATE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		[Flags]
+		private enum VkSurfaceTransformFlagBitsKHR
+		{
+			VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR = 0x00000001,
+			VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR = 0x00000002,
+			VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR = 0x00000004,
+			VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR = 0x00000008,
+			VK_SURFACE_TRANSFORM_HORIZONTAL_MIRROR_BIT_KHR = 0x00000010,
+			VK_SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_90_BIT_KHR = 0x00000020,
+			VK_SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_180_BIT_KHR = 0x00000040,
+			VK_SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_270_BIT_KHR = 0x00000080,
+			VK_SURFACE_TRANSFORM_INHERIT_BIT_KHR = 0x00000100,
+			VK_SURFACE_TRANSFORM_FLAG_BITS_MAX_ENUM_KHR = 0x7FFFFFFF
+		}
+
+		[Flags]
+		private enum VkCompositeAlphaFlagBitsKHR
+		{
+			VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR = 0x00000001,
+			VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR = 0x00000002,
+			VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR = 0x00000004,
+			VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR = 0x00000008,
+			VK_COMPOSITE_ALPHA_FLAG_BITS_MAX_ENUM_KHR = 0x7FFFFFFF
+		}
+
+		[Flags]
+		private enum VkImageUsageFlagBits
+		{
+			VK_IMAGE_USAGE_TRANSFER_SRC_BIT = 0x00000001,
+			VK_IMAGE_USAGE_TRANSFER_DST_BIT = 0x00000002,
+			VK_IMAGE_USAGE_SAMPLED_BIT = 0x00000004,
+			VK_IMAGE_USAGE_STORAGE_BIT = 0x00000008,
+			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT = 0x00000010,
+			VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT = 0x00000020,
+			VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT = 0x00000040,
+			VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT = 0x00000080,
+			VK_IMAGE_USAGE_SHADING_RATE_IMAGE_BIT_NV = 0x00000100,
+			VK_IMAGE_USAGE_FRAGMENT_DENSITY_MAP_BIT_EXT = 0x00000200,
+			VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkFormat
+		{
+			VK_FORMAT_UNDEFINED = 0,
+			VK_FORMAT_R4G4_UNORM_PACK8 = 1,
+			VK_FORMAT_R4G4B4A4_UNORM_PACK16 = 2,
+			VK_FORMAT_B4G4R4A4_UNORM_PACK16 = 3,
+			VK_FORMAT_R5G6B5_UNORM_PACK16 = 4,
+			VK_FORMAT_B5G6R5_UNORM_PACK16 = 5,
+			VK_FORMAT_R5G5B5A1_UNORM_PACK16 = 6,
+			VK_FORMAT_B5G5R5A1_UNORM_PACK16 = 7,
+			VK_FORMAT_A1R5G5B5_UNORM_PACK16 = 8,
+			VK_FORMAT_R8_UNORM = 9,
+			VK_FORMAT_R8_SNORM = 10,
+			VK_FORMAT_R8_USCALED = 11,
+			VK_FORMAT_R8_SSCALED = 12,
+			VK_FORMAT_R8_UINT = 13,
+			VK_FORMAT_R8_SINT = 14,
+			VK_FORMAT_R8_SRGB = 15,
+			VK_FORMAT_R8G8_UNORM = 16,
+			VK_FORMAT_R8G8_SNORM = 17,
+			VK_FORMAT_R8G8_USCALED = 18,
+			VK_FORMAT_R8G8_SSCALED = 19,
+			VK_FORMAT_R8G8_UINT = 20,
+			VK_FORMAT_R8G8_SINT = 21,
+			VK_FORMAT_R8G8_SRGB = 22,
+			VK_FORMAT_R8G8B8_UNORM = 23,
+			VK_FORMAT_R8G8B8_SNORM = 24,
+			VK_FORMAT_R8G8B8_USCALED = 25,
+			VK_FORMAT_R8G8B8_SSCALED = 26,
+			VK_FORMAT_R8G8B8_UINT = 27,
+			VK_FORMAT_R8G8B8_SINT = 28,
+			VK_FORMAT_R8G8B8_SRGB = 29,
+			VK_FORMAT_B8G8R8_UNORM = 30,
+			VK_FORMAT_B8G8R8_SNORM = 31,
+			VK_FORMAT_B8G8R8_USCALED = 32,
+			VK_FORMAT_B8G8R8_SSCALED = 33,
+			VK_FORMAT_B8G8R8_UINT = 34,
+			VK_FORMAT_B8G8R8_SINT = 35,
+			VK_FORMAT_B8G8R8_SRGB = 36,
+			VK_FORMAT_R8G8B8A8_UNORM = 37,
+			VK_FORMAT_R8G8B8A8_SNORM = 38,
+			VK_FORMAT_R8G8B8A8_USCALED = 39,
+			VK_FORMAT_R8G8B8A8_SSCALED = 40,
+			VK_FORMAT_R8G8B8A8_UINT = 41,
+			VK_FORMAT_R8G8B8A8_SINT = 42,
+			VK_FORMAT_R8G8B8A8_SRGB = 43,
+			VK_FORMAT_B8G8R8A8_UNORM = 44,
+			VK_FORMAT_B8G8R8A8_SNORM = 45,
+			VK_FORMAT_B8G8R8A8_USCALED = 46,
+			VK_FORMAT_B8G8R8A8_SSCALED = 47,
+			VK_FORMAT_B8G8R8A8_UINT = 48,
+			VK_FORMAT_B8G8R8A8_SINT = 49,
+			VK_FORMAT_B8G8R8A8_SRGB = 50,
+			VK_FORMAT_A8B8G8R8_UNORM_PACK32 = 51,
+			VK_FORMAT_A8B8G8R8_SNORM_PACK32 = 52,
+			VK_FORMAT_A8B8G8R8_USCALED_PACK32 = 53,
+			VK_FORMAT_A8B8G8R8_SSCALED_PACK32 = 54,
+			VK_FORMAT_A8B8G8R8_UINT_PACK32 = 55,
+			VK_FORMAT_A8B8G8R8_SINT_PACK32 = 56,
+			VK_FORMAT_A8B8G8R8_SRGB_PACK32 = 57,
+			VK_FORMAT_A2R10G10B10_UNORM_PACK32 = 58,
+			VK_FORMAT_A2R10G10B10_SNORM_PACK32 = 59,
+			VK_FORMAT_A2R10G10B10_USCALED_PACK32 = 60,
+			VK_FORMAT_A2R10G10B10_SSCALED_PACK32 = 61,
+			VK_FORMAT_A2R10G10B10_UINT_PACK32 = 62,
+			VK_FORMAT_A2R10G10B10_SINT_PACK32 = 63,
+			VK_FORMAT_A2B10G10R10_UNORM_PACK32 = 64,
+			VK_FORMAT_A2B10G10R10_SNORM_PACK32 = 65,
+			VK_FORMAT_A2B10G10R10_USCALED_PACK32 = 66,
+			VK_FORMAT_A2B10G10R10_SSCALED_PACK32 = 67,
+			VK_FORMAT_A2B10G10R10_UINT_PACK32 = 68,
+			VK_FORMAT_A2B10G10R10_SINT_PACK32 = 69,
+			VK_FORMAT_R16_UNORM = 70,
+			VK_FORMAT_R16_SNORM = 71,
+			VK_FORMAT_R16_USCALED = 72,
+			VK_FORMAT_R16_SSCALED = 73,
+			VK_FORMAT_R16_UINT = 74,
+			VK_FORMAT_R16_SINT = 75,
+			VK_FORMAT_R16_SFLOAT = 76,
+			VK_FORMAT_R16G16_UNORM = 77,
+			VK_FORMAT_R16G16_SNORM = 78,
+			VK_FORMAT_R16G16_USCALED = 79,
+			VK_FORMAT_R16G16_SSCALED = 80,
+			VK_FORMAT_R16G16_UINT = 81,
+			VK_FORMAT_R16G16_SINT = 82,
+			VK_FORMAT_R16G16_SFLOAT = 83,
+			VK_FORMAT_R16G16B16_UNORM = 84,
+			VK_FORMAT_R16G16B16_SNORM = 85,
+			VK_FORMAT_R16G16B16_USCALED = 86,
+			VK_FORMAT_R16G16B16_SSCALED = 87,
+			VK_FORMAT_R16G16B16_UINT = 88,
+			VK_FORMAT_R16G16B16_SINT = 89,
+			VK_FORMAT_R16G16B16_SFLOAT = 90,
+			VK_FORMAT_R16G16B16A16_UNORM = 91,
+			VK_FORMAT_R16G16B16A16_SNORM = 92,
+			VK_FORMAT_R16G16B16A16_USCALED = 93,
+			VK_FORMAT_R16G16B16A16_SSCALED = 94,
+			VK_FORMAT_R16G16B16A16_UINT = 95,
+			VK_FORMAT_R16G16B16A16_SINT = 96,
+			VK_FORMAT_R16G16B16A16_SFLOAT = 97,
+			VK_FORMAT_R32_UINT = 98,
+			VK_FORMAT_R32_SINT = 99,
+			VK_FORMAT_R32_SFLOAT = 100,
+			VK_FORMAT_R32G32_UINT = 101,
+			VK_FORMAT_R32G32_SINT = 102,
+			VK_FORMAT_R32G32_SFLOAT = 103,
+			VK_FORMAT_R32G32B32_UINT = 104,
+			VK_FORMAT_R32G32B32_SINT = 105,
+			VK_FORMAT_R32G32B32_SFLOAT = 106,
+			VK_FORMAT_R32G32B32A32_UINT = 107,
+			VK_FORMAT_R32G32B32A32_SINT = 108,
+			VK_FORMAT_R32G32B32A32_SFLOAT = 109,
+			VK_FORMAT_R64_UINT = 110,
+			VK_FORMAT_R64_SINT = 111,
+			VK_FORMAT_R64_SFLOAT = 112,
+			VK_FORMAT_R64G64_UINT = 113,
+			VK_FORMAT_R64G64_SINT = 114,
+			VK_FORMAT_R64G64_SFLOAT = 115,
+			VK_FORMAT_R64G64B64_UINT = 116,
+			VK_FORMAT_R64G64B64_SINT = 117,
+			VK_FORMAT_R64G64B64_SFLOAT = 118,
+			VK_FORMAT_R64G64B64A64_UINT = 119,
+			VK_FORMAT_R64G64B64A64_SINT = 120,
+			VK_FORMAT_R64G64B64A64_SFLOAT = 121,
+			VK_FORMAT_B10G11R11_UFLOAT_PACK32 = 122,
+			VK_FORMAT_E5B9G9R9_UFLOAT_PACK32 = 123,
+			VK_FORMAT_D16_UNORM = 124,
+			VK_FORMAT_X8_D24_UNORM_PACK32 = 125,
+			VK_FORMAT_D32_SFLOAT = 126,
+			VK_FORMAT_S8_UINT = 127,
+			VK_FORMAT_D16_UNORM_S8_UINT = 128,
+			VK_FORMAT_D24_UNORM_S8_UINT = 129,
+			VK_FORMAT_D32_SFLOAT_S8_UINT = 130,
+			VK_FORMAT_BC1_RGB_UNORM_BLOCK = 131,
+			VK_FORMAT_BC1_RGB_SRGB_BLOCK = 132,
+			VK_FORMAT_BC1_RGBA_UNORM_BLOCK = 133,
+			VK_FORMAT_BC1_RGBA_SRGB_BLOCK = 134,
+			VK_FORMAT_BC2_UNORM_BLOCK = 135,
+			VK_FORMAT_BC2_SRGB_BLOCK = 136,
+			VK_FORMAT_BC3_UNORM_BLOCK = 137,
+			VK_FORMAT_BC3_SRGB_BLOCK = 138,
+			VK_FORMAT_BC4_UNORM_BLOCK = 139,
+			VK_FORMAT_BC4_SNORM_BLOCK = 140,
+			VK_FORMAT_BC5_UNORM_BLOCK = 141,
+			VK_FORMAT_BC5_SNORM_BLOCK = 142,
+			VK_FORMAT_BC6H_UFLOAT_BLOCK = 143,
+			VK_FORMAT_BC6H_SFLOAT_BLOCK = 144,
+			VK_FORMAT_BC7_UNORM_BLOCK = 145,
+			VK_FORMAT_BC7_SRGB_BLOCK = 146,
+			VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK = 147,
+			VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK = 148,
+			VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK = 149,
+			VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK = 150,
+			VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK = 151,
+			VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK = 152,
+			VK_FORMAT_EAC_R11_UNORM_BLOCK = 153,
+			VK_FORMAT_EAC_R11_SNORM_BLOCK = 154,
+			VK_FORMAT_EAC_R11G11_UNORM_BLOCK = 155,
+			VK_FORMAT_EAC_R11G11_SNORM_BLOCK = 156,
+			VK_FORMAT_ASTC_4x4_UNORM_BLOCK = 157,
+			VK_FORMAT_ASTC_4x4_SRGB_BLOCK = 158,
+			VK_FORMAT_ASTC_5x4_UNORM_BLOCK = 159,
+			VK_FORMAT_ASTC_5x4_SRGB_BLOCK = 160,
+			VK_FORMAT_ASTC_5x5_UNORM_BLOCK = 161,
+			VK_FORMAT_ASTC_5x5_SRGB_BLOCK = 162,
+			VK_FORMAT_ASTC_6x5_UNORM_BLOCK = 163,
+			VK_FORMAT_ASTC_6x5_SRGB_BLOCK = 164,
+			VK_FORMAT_ASTC_6x6_UNORM_BLOCK = 165,
+			VK_FORMAT_ASTC_6x6_SRGB_BLOCK = 166,
+			VK_FORMAT_ASTC_8x5_UNORM_BLOCK = 167,
+			VK_FORMAT_ASTC_8x5_SRGB_BLOCK = 168,
+			VK_FORMAT_ASTC_8x6_UNORM_BLOCK = 169,
+			VK_FORMAT_ASTC_8x6_SRGB_BLOCK = 170,
+			VK_FORMAT_ASTC_8x8_UNORM_BLOCK = 171,
+			VK_FORMAT_ASTC_8x8_SRGB_BLOCK = 172,
+			VK_FORMAT_ASTC_10x5_UNORM_BLOCK = 173,
+			VK_FORMAT_ASTC_10x5_SRGB_BLOCK = 174,
+			VK_FORMAT_ASTC_10x6_UNORM_BLOCK = 175,
+			VK_FORMAT_ASTC_10x6_SRGB_BLOCK = 176,
+			VK_FORMAT_ASTC_10x8_UNORM_BLOCK = 177,
+			VK_FORMAT_ASTC_10x8_SRGB_BLOCK = 178,
+			VK_FORMAT_ASTC_10x10_UNORM_BLOCK = 179,
+			VK_FORMAT_ASTC_10x10_SRGB_BLOCK = 180,
+			VK_FORMAT_ASTC_12x10_UNORM_BLOCK = 181,
+			VK_FORMAT_ASTC_12x10_SRGB_BLOCK = 182,
+			VK_FORMAT_ASTC_12x12_UNORM_BLOCK = 183,
+			VK_FORMAT_ASTC_12x12_SRGB_BLOCK = 184,
+		}
+
+		private enum VkColorSpaceKHR
+		{
+			VK_COLOR_SPACE_SRGB_NONLINEAR_KHR = 0
+		}
+
+		private enum VkPresentModeKHR
+		{
+			VK_PRESENT_MODE_IMMEDIATE_KHR = 0,
+			VK_PRESENT_MODE_MAILBOX_KHR = 1,
+			VK_PRESENT_MODE_FIFO_KHR = 2,
+			VK_PRESENT_MODE_FIFO_RELAXED_KHR = 3,
+		}
+
+		private enum VkFormatFeatureFlagBits
+		{
+			VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT = 0x00000001,
+			VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT = 0x00000002,
+			VK_FORMAT_FEATURE_STORAGE_IMAGE_ATOMIC_BIT = 0x00000004,
+			VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT = 0x00000008,
+			VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT = 0x00000010,
+			VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_ATOMIC_BIT = 0x00000020,
+			VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT = 0x00000040,
+			VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT = 0x00000080,
+			VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT = 0x00000100,
+			VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT = 0x00000200,
+			VK_FORMAT_FEATURE_BLIT_SRC_BIT = 0x00000400,
+			VK_FORMAT_FEATURE_BLIT_DST_BIT = 0x00000800,
+			VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT = 0x00001000,
+			VK_FORMAT_FEATURE_TRANSFER_SRC_BIT = 0x00004000,
+			VK_FORMAT_FEATURE_TRANSFER_DST_BIT = 0x00008000,
+			VK_FORMAT_FEATURE_MIDPOINT_CHROMA_SAMPLES_BIT = 0x00020000,
+			VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_LINEAR_FILTER_BIT = 0x00040000,
+			VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_SEPARATE_RECONSTRUCTION_FILTER_BIT = 0x00080000,
+			VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_CHROMA_RECONSTRUCTION_EXPLICIT_BIT = 0x00100000,
+			VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_CHROMA_RECONSTRUCTION_EXPLICIT_FORCEABLE_BIT = 0x00200000,
+			VK_FORMAT_FEATURE_DISJOINT_BIT = 0x00400000,
+			VK_FORMAT_FEATURE_COSITED_CHROMA_SAMPLES_BIT = 0x00800000,
+			VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_CUBIC_BIT_IMG = 0x00002000,
+			VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT_EXT = 0x00010000,
+			VK_FORMAT_FEATURE_FRAGMENT_DENSITY_MAP_BIT_EXT = 0x01000000,
+			VK_FORMAT_FEATURE_TRANSFER_SRC_BIT_KHR = VK_FORMAT_FEATURE_TRANSFER_SRC_BIT,
+			VK_FORMAT_FEATURE_TRANSFER_DST_BIT_KHR = VK_FORMAT_FEATURE_TRANSFER_DST_BIT,
+			VK_FORMAT_FEATURE_MIDPOINT_CHROMA_SAMPLES_BIT_KHR = VK_FORMAT_FEATURE_MIDPOINT_CHROMA_SAMPLES_BIT,
+			VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_LINEAR_FILTER_BIT_KHR = VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_LINEAR_FILTER_BIT,
+			VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_SEPARATE_RECONSTRUCTION_FILTER_BIT_KHR = VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_SEPARATE_RECONSTRUCTION_FILTER_BIT,
+			VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_CHROMA_RECONSTRUCTION_EXPLICIT_BIT_KHR = VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_CHROMA_RECONSTRUCTION_EXPLICIT_BIT,
+			VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_CHROMA_RECONSTRUCTION_EXPLICIT_FORCEABLE_BIT_KHR = VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_CHROMA_RECONSTRUCTION_EXPLICIT_FORCEABLE_BIT,
+			VK_FORMAT_FEATURE_DISJOINT_BIT_KHR = VK_FORMAT_FEATURE_DISJOINT_BIT,
+			VK_FORMAT_FEATURE_COSITED_CHROMA_SAMPLES_BIT_KHR = VK_FORMAT_FEATURE_COSITED_CHROMA_SAMPLES_BIT,
+			VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_CUBIC_BIT_EXT = VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_CUBIC_BIT_IMG,
+			VK_FORMAT_FEATURE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
 		}
 
 		#endregion
@@ -854,6 +1142,12 @@ namespace Microsoft.Xna.Framework.Graphics
 			public uint inheritedQueries;
 		}
 
+		private struct VkExtent2D
+		{
+			public uint width;
+			public uint height;
+		}
+
 		private struct VkExtent3D
 		{
 			public uint width;
@@ -893,7 +1187,19 @@ namespace Microsoft.Xna.Framework.Graphics
 			public float* pQueuePriorities;
 		}
 
-		#region VK_KHR_debug_utils
+		private struct VkSurfaceCapabilitiesKHR
+		{
+			public uint minImageCount;
+			public uint maxImageCount;
+			public VkExtent2D currentExtent;
+			public VkExtent2D minImageExtent;
+			public VkExtent2D maxImageExtent;
+			public uint maxImageArrayLayers;
+			public VkSurfaceTransformFlagBitsKHR supportedTransforms;
+			public VkSurfaceTransformFlagBitsKHR currentTransform;
+			public VkCompositeAlphaFlagBitsKHR supportedCompositeAlpha;
+			public VkImageUsageFlagBits supportedUsageFlags;
+		}
 
 		private unsafe struct VkDebugUtilsMessengerCallbackDataEXT
 		{
@@ -911,7 +1217,7 @@ namespace Microsoft.Xna.Framework.Graphics
 			public VkDebugUtilsObjectNameInfoEXT* pObjects;
 		}
 
-		struct VkDebugUtilsLabelEXT
+		private struct VkDebugUtilsLabelEXT
 		{
 			public VkStructureType sType;
 			public IntPtr pNext;
@@ -922,7 +1228,7 @@ namespace Microsoft.Xna.Framework.Graphics
 			public float color_3;
 		}
 
-		struct VkDebugUtilsObjectNameInfoEXT
+		private struct VkDebugUtilsObjectNameInfoEXT
 		{
 			public VkStructureType sType;
 			public IntPtr pNext;
@@ -931,7 +1237,7 @@ namespace Microsoft.Xna.Framework.Graphics
 			public IntPtr pObjectName;
 		}
 
-		struct VkDebugUtilsMessengerCreateInfoEXT
+		private struct VkDebugUtilsMessengerCreateInfoEXT
 		{
 			public VkStructureType sType;
 			public IntPtr pNext;
@@ -942,15 +1248,24 @@ namespace Microsoft.Xna.Framework.Graphics
 			public IntPtr pUserData;
 		}
 
-		#endregion
+		private struct VkSurfaceFormatKHR
+		{
+			public VkFormat format;
+			public VkColorSpaceKHR colorSpace;
+		}
+
+		private struct VkFormatProperties
+		{
+			public VkFormatFeatureFlagBits linearTilingFeatures;
+			public VkFormatFeatureFlagBits optimalTilingFeatures;
+			public VkFormatFeatureFlagBits bufferFeatures;
+		}
 
 		#endregion
-
-		#region UTF8 Interop
 
 		#region UTF8 Marshaling
 
-		// Modified from SDL2#
+		// Modified slightly from SDL2#
 		private unsafe IntPtr UTF8_ToNative(string s)
 		{
 			if (s == null)
@@ -966,6 +1281,7 @@ namespace Microsoft.Xna.Framework.Graphics
 			}
 		}
 
+		// Modified slightly from SDL2#
 		private unsafe string UTF8_ToManaged(IntPtr s, bool freePtr = false)
 		{
 			if (s == IntPtr.Zero)
@@ -1015,13 +1331,33 @@ namespace Microsoft.Xna.Framework.Graphics
 
 		#endregion
 
-		#endregion
-
 		#region Private Vulkan Entry Points
 
 		private uint VK_MAKE_VERSION(uint major, uint minor, uint patch)
 		{
 			return (major << 22) | (minor << 12) | patch;
+		}
+
+		private uint VK_VERSION_MAJOR(uint version)
+		{
+			return version >> 22;
+		}
+
+		private uint VK_VERSION_MINOR(uint version)
+		{
+			return (version >> 12) & 0x3ff;
+		}
+
+		private uint VK_VERSION_PATCH(uint version)
+		{
+			return version & 0xfff;
+		}
+
+		private string VK_GetVersionString(uint version)
+		{
+			return  VK_VERSION_MAJOR(version) + "."
+				+ VK_VERSION_MINOR(version) + "."
+				+ VK_VERSION_PATCH(version);
 		}
 
 		private Delegate GetProcAddress(string name, Type type)
@@ -1094,6 +1430,26 @@ namespace Microsoft.Xna.Framework.Graphics
 			vkGetPhysicalDeviceSurfaceSupportKHR = (GetPhysicalDeviceSurfaceSupportKHR) GetProcAddress(
 				"vkGetPhysicalDeviceSurfaceSupportKHR",
 				typeof(GetPhysicalDeviceSurfaceSupportKHR)
+			);
+			vkGetPhysicalDeviceSurfaceCapabilitiesKHR = (GetPhysicalDeviceSurfaceCapabilitiesKHR) GetProcAddress(
+				"vkGetPhysicalDeviceSurfaceCapabilitiesKHR",
+				typeof(GetPhysicalDeviceSurfaceCapabilitiesKHR)
+			);
+			vkGetPhysicalDeviceSurfaceFormatsKHR = (GetPhysicalDeviceSurfaceFormatsKHR) GetProcAddress(
+				"vkGetPhysicalDeviceSurfaceFormatsKHR",
+				typeof(GetPhysicalDeviceSurfaceFormatsKHR)
+			);
+			vkGetPhysicalDeviceSurfaceFormatsKHR = (GetPhysicalDeviceSurfaceFormatsKHR) GetProcAddress(
+				"vkGetPhysicalDeviceSurfaceFormatsKHR",
+				typeof(GetPhysicalDeviceSurfaceFormatsKHR)
+			);
+			vkGetPhysicalDeviceSurfacePresentModesKHR = (GetPhysicalDeviceSurfacePresentModesKHR) GetProcAddress(
+				"vkGetPhysicalDeviceSurfacePresentModesKHR",
+				typeof(GetPhysicalDeviceSurfacePresentModesKHR)
+			);
+			vkGetPhysicalDeviceFormatProperties = (GetPhysicalDeviceFormatProperties) GetProcAddress(
+				"vkGetPhysicalDeviceFormatProperties",
+				typeof(GetPhysicalDeviceFormatProperties)
 			);
 
 			if (validationEnabled)
@@ -1200,7 +1556,35 @@ namespace Microsoft.Xna.Framework.Graphics
 		);
 		private GetPhysicalDeviceSurfaceSupportKHR vkGetPhysicalDeviceSurfaceSupportKHR;
 
-		#region VK_KHR_debug_utils
+		private delegate VkResult GetPhysicalDeviceSurfaceCapabilitiesKHR(
+			IntPtr physicalDevice,
+			ulong surface,
+			out VkSurfaceCapabilitiesKHR surfaceCapabilities
+		);
+		private GetPhysicalDeviceSurfaceCapabilitiesKHR vkGetPhysicalDeviceSurfaceCapabilitiesKHR;
+
+		private unsafe delegate VkResult GetPhysicalDeviceSurfaceFormatsKHR(
+			IntPtr physicalDevice,
+			ulong surface,
+			out uint surfaceFormatCount,
+			VkSurfaceFormatKHR* pSurfaceFormats
+		);
+		private GetPhysicalDeviceSurfaceFormatsKHR vkGetPhysicalDeviceSurfaceFormatsKHR;
+
+		private unsafe delegate VkResult GetPhysicalDeviceSurfacePresentModesKHR(
+			IntPtr physicalDevice,
+			ulong surface,
+			out uint pPresentModeCount,
+			VkPresentModeKHR* pPresentModes
+		);
+		private GetPhysicalDeviceSurfacePresentModesKHR vkGetPhysicalDeviceSurfacePresentModesKHR;
+
+		private delegate void GetPhysicalDeviceFormatProperties(
+			IntPtr physicalDevice,
+			VkFormat format,
+			out VkFormatProperties properties
+		);
+		private GetPhysicalDeviceFormatProperties vkGetPhysicalDeviceFormatProperties;
 
 		private unsafe delegate VkResult CreateDebugUtilsMessengerEXT(
 			IntPtr instance,
@@ -1217,15 +1601,16 @@ namespace Microsoft.Xna.Framework.Graphics
 		);
 		private DestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT;
 
-		// Callback function
+		#endregion
+
+		#region Private Delegates
+
 		private unsafe delegate uint PFN_vkDebugUtilsMessengerCallbackEXT(
 			VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 			VkDebugUtilsMessageTypeFlagBitsEXT messageType,
 			VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 			IntPtr pUserData
 		);
-
-		#endregion
 
 		#endregion
 	}
