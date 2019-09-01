@@ -49,17 +49,13 @@ namespace Microsoft.Xna.Framework.Graphics
 			CreateWindowSurface(presentationParameters.DeviceWindowHandle);
 			SelectPhysicalDevice();
 			CreateLogicalDevice();
-
-			// Store a handle to the graphics and presentation queues
-			vkGetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, out GraphicsQueue);
-			vkGetDeviceQueue(Device, presentationQueueFamilyIndex, 0, out PresentationQueue);
 		}
 
-		private unsafe bool InstanceExtensionSupported(string extName, VkExtensionProperties[] extensions)
+		private unsafe bool ExtensionSupported(string extName, VkExtensionProperties[] extensions)
 		{
 			foreach (VkExtensionProperties ext in extensions)
 			{
-				if (UTF8_ToManaged(ext.extensionName) == extName)
+				if (UTF8_ToManaged((IntPtr) ext.extensionName) == extName)
 				{
 					return true;
 				}
@@ -68,11 +64,11 @@ namespace Microsoft.Xna.Framework.Graphics
 			return false;
 		}
 
-		private unsafe bool InstanceLayerSupported(string layerName, VkLayerProperties[] layers)
+		private unsafe bool LayerSupported(string layerName, VkLayerProperties[] layers)
 		{
 			foreach (VkLayerProperties layer in layers)
 			{
-				if (UTF8_ToManaged(layer.layerName) == layerName)
+				if (UTF8_ToManaged((IntPtr) layer.layerName) == layerName)
 				{
 					return true;
 				}
@@ -121,7 +117,7 @@ namespace Microsoft.Xna.Framework.Graphics
 			if (validationEnabled)
 			{
 				string debugUtilsExt = "VK_EXT_debug_utils";
-				if (InstanceExtensionSupported(debugUtilsExt, availableExtensions))
+				if (ExtensionSupported(debugUtilsExt, availableExtensions))
 				{
 					extensions.Add(UTF8_ToNative(debugUtilsExt));
 				}
@@ -149,7 +145,7 @@ namespace Microsoft.Xna.Framework.Graphics
 			if (renderdocEnabled)
 			{
 				string renderdocLayerName = "VK_LAYER_RENDERDOC_Capture";
-				if (InstanceLayerSupported(renderdocLayerName, availableLayers))
+				if (LayerSupported(renderdocLayerName, availableLayers))
 				{
 					layers.Add(UTF8_ToNative(renderdocLayerName));
 				}
@@ -189,9 +185,6 @@ namespace Microsoft.Xna.Framework.Graphics
 			{
 				throw new Exception("Could not create Vulkan Instance! Error: " + res);
 			}
-
-			// Clean up
-			UTF8_FreeNativeStrings();
 		}
 
 		private unsafe void InitDebugMessenger()
@@ -199,7 +192,7 @@ namespace Microsoft.Xna.Framework.Graphics
 			VkDebugUtilsMessageSeverityFlagBitsEXT severityFlags =
 				VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT
 			      | VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
-			      | VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT
+			      //| VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT
 			      | VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
 
 			VkDebugUtilsMessageTypeFlagBitsEXT messageFlags =
@@ -238,7 +231,7 @@ namespace Microsoft.Xna.Framework.Graphics
 			VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 			IntPtr pUserData
 		) {
-			string message = UTF8_ToManaged((byte*) pCallbackData->pMessage);
+			string message = UTF8_ToManaged(pCallbackData->pMessage);
 
 			if (messageSeverity == VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
 			{
@@ -254,7 +247,6 @@ namespace Microsoft.Xna.Framework.Graphics
 				FNALoggerEXT.LogInfo("INFO: " + message);
 			}
 
-			UTF8_FreeNativeStrings();
 			return 0;
 		}
 
@@ -413,6 +405,17 @@ namespace Microsoft.Xna.Framework.Graphics
 
 		private unsafe void CreateLogicalDevice()
 		{
+			/* Check if the graphics queue family and the presentation
+			 * queue family are the same. If so, we can generate one
+			 * queue and use it for both purposes. If not, we'll need
+			 * to make a second queue just for presenting.
+			 */
+			bool differentPresentationQueue = (graphicsQueueFamilyIndex != presentationQueueFamilyIndex);
+			uint queueCount = (differentPresentationQueue) ? 2u : 1u;
+
+			// Create a list of queue CreateInfo's
+			VkDeviceQueueCreateInfo[] queueCreateInfos = new VkDeviceQueueCreateInfo[queueCount];
+
 			// Create the graphics queue CreateInfo
 			float priority = 1.0f;
 			VkDeviceQueueCreateInfo graphicsQueueCreateInfo = new VkDeviceQueueCreateInfo
@@ -422,26 +425,24 @@ namespace Microsoft.Xna.Framework.Graphics
 				flags = 0,
 				queueCount = 1,
 				pQueuePriorities = &priority,
-				queueFamilyIndex = (uint) graphicsQueueFamilyIndex
+				queueFamilyIndex = graphicsQueueFamilyIndex
 			};
+			queueCreateInfos[0] = graphicsQueueCreateInfo;
 
-			// Create the presentation queue CreateInfo
-			VkDeviceQueueCreateInfo presentationQueueCreateInfo = new VkDeviceQueueCreateInfo
+			// Create the presentation queue CreateInfo, if needed
+			if (differentPresentationQueue)
 			{
-				sType = VkStructureType.VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-				pNext = IntPtr.Zero,
-				flags = 0,
-				queueCount = 1,
-				pQueuePriorities = &priority,
-				queueFamilyIndex = (uint) presentationQueueFamilyIndex
-			};
-
-			// Stuff them into an array
-			VkDeviceQueueCreateInfo[] queueCreateInfos =
-			{
-				graphicsQueueCreateInfo,
-				presentationQueueCreateInfo
-			};
+				VkDeviceQueueCreateInfo presentationQueueCreateInfo = new VkDeviceQueueCreateInfo
+				{
+					sType = VkStructureType.VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+					pNext = IntPtr.Zero,
+					flags = 0,
+					queueCount = 1,
+					pQueuePriorities = &priority,
+					queueFamilyIndex = presentationQueueFamilyIndex
+				};
+				queueCreateInfos[1] = presentationQueueCreateInfo;
+			}
 
 			// Get all supported device extensions
 			uint extensionCount;
@@ -457,8 +458,11 @@ namespace Microsoft.Xna.Framework.Graphics
 				);
 			}
 
-			// FIXME: Are there any device extensions that we want...?
-			IntPtr[] extensionNames = { };
+			// List all required device extensions
+			IntPtr[] extensionNames =
+			{
+				UTF8_ToNative("VK_KHR_swapchain")
+			};
 
 			// Prepare for device creation
 			VkDeviceCreateInfo deviceCreateInfo;
@@ -471,7 +475,7 @@ namespace Microsoft.Xna.Framework.Graphics
 						sType = VkStructureType.VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
 						pNext = IntPtr.Zero,
 						flags = 0,
-						queueCreateInfoCount = (uint) queueCreateInfos.Length,
+						queueCreateInfoCount = queueCount,
 						pQueueCreateInfos = queueCreateInfosPtr,
 
 						// FIXME: Should these be the same as instance layers?
@@ -489,6 +493,10 @@ namespace Microsoft.Xna.Framework.Graphics
 
 			// Create the device!
 			vkCreateDevice(PhysicalDevice, &deviceCreateInfo, IntPtr.Zero, out Device);
+
+			// Store handles to the graphics and presentation queues
+			vkGetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, out GraphicsQueue);
+			vkGetDeviceQueue(Device, presentationQueueFamilyIndex, 0, out PresentationQueue);
 		}
 
 		public Color BlendFactor { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
