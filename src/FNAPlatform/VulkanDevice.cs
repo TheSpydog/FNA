@@ -104,6 +104,29 @@ namespace Microsoft.Xna.Framework.Graphics
 			return false;
 		}
 
+		private unsafe VkExtensionProperties[] GetAllDeviceExtensions(IntPtr physicalDevice)
+		{
+			uint extensionCount;
+			vkEnumerateDeviceExtensionProperties(
+				physicalDevice,
+				IntPtr.Zero,
+				out extensionCount,
+				null
+			);
+			VkExtensionProperties[] extensions = new VkExtensionProperties[extensionCount];
+			fixed (VkExtensionProperties* extptr = extensions)
+			{
+				vkEnumerateDeviceExtensionProperties(
+					physicalDevice,
+					IntPtr.Zero,
+					out extensionCount,
+					extptr
+				);
+			}
+
+			return extensions;
+		}
+
 		private unsafe void CreateVulkanInstance(IntPtr windowHandle)
 		{
 			// Describe app metadata
@@ -385,14 +408,26 @@ namespace Microsoft.Xna.Framework.Graphics
 					);
 				}
 
-				/* The physical device MUST have at least one graphics queue
-				 * family and one queue family that supports presentation.
+				/* A suitable physical device MUST have...
+				 * 1. Support for the VK_KHR_swapchain extension
+				 * 2. At least one graphics queue family
+				 * 3. At least one queue family that supports presentation
 				 */
+				bool supportsSwapchainExt = ExtensionSupported(
+					"VK_KHR_swapchain",
+					GetAllDeviceExtensions(physicalDevices[i])
+				);
 				graphicsQueueFamilyIndices[i] = -1;
 				presentationQueueFamilyIndices[i] = -1;
 
 				for (int j = 0; j < queueFamilies.Length; j += 1)
 				{
+					if (!supportsSwapchainExt)
+					{
+						// This GPU's a dud, let's bail.
+						break;
+					}
+
 					if (graphicsQueueFamilyIndices[i] == -1)
 					{
 						if (QueueFamilySupportsGraphics(queueFamilies[j]))
@@ -424,9 +459,13 @@ namespace Microsoft.Xna.Framework.Graphics
 
 				// discrete GPU > integrated GPU > anything else
 				if (props.deviceType == VkPhysicalDeviceType.VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+				{
 					scores[i] += 100;
+				}
 				else if (props.deviceType == VkPhysicalDeviceType.VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
+				{
 					scores[i] += 50;
+				}
 
 				// FIXME: Other GPU properties to check?
 
@@ -498,21 +537,8 @@ namespace Microsoft.Xna.Framework.Graphics
 				queueCreateInfos[1] = presentationQueueCreateInfo;
 			}
 
-			// Get all supported device extensions
-			uint extensionCount;
-			vkEnumerateDeviceExtensionProperties(PhysicalDevice, IntPtr.Zero, out extensionCount, null);
-			VkExtensionProperties[] extensions = new VkExtensionProperties[extensionCount];
-			fixed (VkExtensionProperties* extptr = extensions)
-			{
-				vkEnumerateDeviceExtensionProperties(
-					PhysicalDevice,
-					IntPtr.Zero,
-					out extensionCount,
-					extptr
-				);
-			}
-
-			// List all required device extensions
+			// List all the device extensions we want to use.
+			// FIXME: This will probably need to be revisited.
 			IntPtr[] extensionNames =
 			{
 				UTF8_ToNative("VK_KHR_swapchain")
