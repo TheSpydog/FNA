@@ -504,7 +504,7 @@ namespace Microsoft.Xna.Framework.Graphics
 			VK_RESULT_MAX_ENUM = 0x7FFFFFFF
 		}
 
-		private enum VkDebugUtilsMessageSeverityFlagBitsEXT
+		private enum VkDebugUtilsMessageSeverityFlagsEXT
 		{
 			VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT = 0x00000001,
 			VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT = 0x00000010,
@@ -513,7 +513,7 @@ namespace Microsoft.Xna.Framework.Graphics
 			VK_DEBUG_UTILS_MESSAGE_SEVERITY_FLAG_BITS_MAX_ENUM_EXT = 0x7FFFFFFF
 		}
 
-		private enum VkDebugUtilsMessageTypeFlagBitsEXT
+		private enum VkDebugUtilsMessageTypeFlagsEXT
 		{
 			VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT = 0x00000001,
 			VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT = 0x00000002,
@@ -577,7 +577,7 @@ namespace Microsoft.Xna.Framework.Graphics
 			VK_PHYSICAL_DEVICE_TYPE_MAX_ENUM = 0x7FFFFFFF
 		}
 
-		private enum VkSampleCountFlagBits
+		private enum VkSampleCountFlags
 		{
 			VK_SAMPLE_COUNT_1_BIT = 0x00000001,
 			VK_SAMPLE_COUNT_2_BIT = 0x00000002,
@@ -589,7 +589,7 @@ namespace Microsoft.Xna.Framework.Graphics
 			VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
 		}
 
-		private enum VkQueueFlagBits
+		private enum VkQueueFlags
 		{
 			VK_QUEUE_GRAPHICS_BIT = 0x00000001,
 			VK_QUEUE_COMPUTE_BIT = 0x00000002,
@@ -599,13 +599,13 @@ namespace Microsoft.Xna.Framework.Graphics
 			VK_QUEUE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
 		}
 
-		private enum VkDeviceQueueCreateFlagBits
+		private enum VkDeviceQueueCreateFlags
 		{
 			VK_DEVICE_QUEUE_CREATE_PROTECTED_BIT = 0x00000001,
 			VK_DEVICE_QUEUE_CREATE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
 		}
 
-		private enum VkSurfaceTransformFlagBitsKHR
+		private enum VkSurfaceTransformFlagsKHR
 		{
 			VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR = 0x00000001,
 			VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR = 0x00000002,
@@ -619,7 +619,7 @@ namespace Microsoft.Xna.Framework.Graphics
 			VK_SURFACE_TRANSFORM_FLAG_BITS_MAX_ENUM_KHR = 0x7FFFFFFF
 		}
 
-		private enum VkCompositeAlphaFlagBitsKHR
+		private enum VkCompositeAlphaFlagsKHR
 		{
 			VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR = 0x00000001,
 			VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR = 0x00000002,
@@ -628,7 +628,7 @@ namespace Microsoft.Xna.Framework.Graphics
 			VK_COMPOSITE_ALPHA_FLAG_BITS_MAX_ENUM_KHR = 0x7FFFFFFF
 		}
 
-		private enum VkImageUsageFlagBits
+		private enum VkImageUsageFlags
 		{
 			VK_IMAGE_USAGE_TRANSFER_SRC_BIT = 0x00000001,
 			VK_IMAGE_USAGE_TRANSFER_DST_BIT = 0x00000002,
@@ -863,7 +863,7 @@ namespace Microsoft.Xna.Framework.Graphics
 			VK_PRESENT_MODE_FIFO_RELAXED_KHR = 3,
 		}
 
-		private enum VkFormatFeatureFlagBits
+		private enum VkFormatFeatureFlags
 		{
 			VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT = 0x00000001,
 			VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT = 0x00000002,
@@ -903,13 +903,13 @@ namespace Microsoft.Xna.Framework.Graphics
 			VK_FORMAT_FEATURE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
 		}
 
-		private enum VkFramebufferCreateFlagBits
+		private enum VkFramebufferCreateFlags
 		{
 			VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT_KHR = 0x00000001,
 			VK_FRAMEBUFFER_CREATE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
 		}
 
-		private enum VkImageViewCreateFlagBits
+		private enum VkImageViewCreateFlags
 		{
 			VK_IMAGE_VIEW_CREATE_FRAGMENT_DENSITY_MAP_DYNAMIC_BIT_EXT = 0x00000001,
 			VK_IMAGE_VIEW_CREATE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
@@ -939,7 +939,7 @@ namespace Microsoft.Xna.Framework.Graphics
 			VK_COMPONENT_SWIZZLE_MAX_ENUM = 0x7FFFFFFF
 		}
 
-		private enum VkImageAspectFlagBits
+		private enum VkImageAspectFlags
 		{
 			VK_IMAGE_ASPECT_COLOR_BIT = 0x00000001,
 			VK_IMAGE_ASPECT_DEPTH_BIT = 0x00000002,
@@ -958,7 +958,7 @@ namespace Microsoft.Xna.Framework.Graphics
 			VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
 		}
 
-		private enum VkImageCreateFlagBits
+		private enum VkImageCreateFlags
 		{
 			VK_IMAGE_CREATE_SPARSE_BINDING_BIT = 0x00000001,
 			VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT = 0x00000002,
@@ -1029,12 +1029,260 @@ namespace Microsoft.Xna.Framework.Graphics
 			VK_IMAGE_LAYOUT_MAX_ENUM = 0x7FFFFFFF
 		}
 
-		private enum VkSwapchainCreateFlagBitsKHR
+		private enum VkSwapchainCreateFlagsKHR
 		{
 			VK_SWAPCHAIN_CREATE_SPLIT_INSTANCE_BIND_REGIONS_BIT_KHR = 0x00000001,
 			VK_SWAPCHAIN_CREATE_PROTECTED_BIT_KHR = 0x00000002,
 			VK_SWAPCHAIN_CREATE_MUTABLE_FORMAT_BIT_KHR = 0x00000004,
 			VK_SWAPCHAIN_CREATE_FLAG_BITS_MAX_ENUM_KHR = 0x7FFFFFFF
+		}
+
+		private enum VkPipelineCreateFlags
+		{
+			VK_PIPELINE_CREATE_DISABLE_OPTIMIZATION_BIT = 0x00000001,
+			VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT = 0x00000002,
+			VK_PIPELINE_CREATE_DERIVATIVE_BIT = 0x00000004,
+			VK_PIPELINE_CREATE_VIEW_INDEX_FROM_DEVICE_INDEX_BIT = 0x00000008,
+			VK_PIPELINE_CREATE_DISPATCH_BASE = 0x00000010,
+			VK_PIPELINE_CREATE_DEFER_COMPILE_BIT_NV = 0x00000020,
+			VK_PIPELINE_CREATE_CAPTURE_STATISTICS_BIT_KHR = 0x00000040,
+			VK_PIPELINE_CREATE_CAPTURE_INTERNAL_REPRESENTATIONS_BIT_KHR = 0x00000080,
+			VK_PIPELINE_CREATE_VIEW_INDEX_FROM_DEVICE_INDEX_BIT_KHR = VK_PIPELINE_CREATE_VIEW_INDEX_FROM_DEVICE_INDEX_BIT,
+			VK_PIPELINE_CREATE_DISPATCH_BASE_KHR = VK_PIPELINE_CREATE_DISPATCH_BASE,
+			VK_PIPELINE_CREATE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkPipelineShaderStageCreateFlags
+		{
+			VK_PIPELINE_SHADER_STAGE_CREATE_ALLOW_VARYING_SUBGROUP_SIZE_BIT_EXT = 0x00000001,
+			VK_PIPELINE_SHADER_STAGE_CREATE_REQUIRE_FULL_SUBGROUPS_BIT_EXT = 0x00000002,
+			VK_PIPELINE_SHADER_STAGE_CREATE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkShaderStageFlags
+		{
+			VK_SHADER_STAGE_VERTEX_BIT = 0x00000001,
+			VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT = 0x00000002,
+			VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT = 0x00000004,
+			VK_SHADER_STAGE_GEOMETRY_BIT = 0x00000008,
+			VK_SHADER_STAGE_FRAGMENT_BIT = 0x00000010,
+			VK_SHADER_STAGE_COMPUTE_BIT = 0x00000020,
+			VK_SHADER_STAGE_ALL_GRAPHICS = 0x0000001F,
+			VK_SHADER_STAGE_ALL = 0x7FFFFFFF,
+			VK_SHADER_STAGE_RAYGEN_BIT_NV = 0x00000100,
+			VK_SHADER_STAGE_ANY_HIT_BIT_NV = 0x00000200,
+			VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV = 0x00000400,
+			VK_SHADER_STAGE_MISS_BIT_NV = 0x00000800,
+			VK_SHADER_STAGE_INTERSECTION_BIT_NV = 0x00001000,
+			VK_SHADER_STAGE_CALLABLE_BIT_NV = 0x00002000,
+			VK_SHADER_STAGE_TASK_BIT_NV = 0x00000040,
+			VK_SHADER_STAGE_MESH_BIT_NV = 0x00000080,
+			VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkPrimitiveTopology
+		{
+			VK_PRIMITIVE_TOPOLOGY_POINT_LIST = 0,
+			VK_PRIMITIVE_TOPOLOGY_LINE_LIST = 1,
+			VK_PRIMITIVE_TOPOLOGY_LINE_STRIP = 2,
+			VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST = 3,
+			VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP = 4,
+			VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN = 5,
+			VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY = 6,
+			VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY = 7,
+			VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY = 8,
+			VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY = 9,
+			VK_PRIMITIVE_TOPOLOGY_PATCH_LIST = 10,
+			VK_PRIMITIVE_TOPOLOGY_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkPolygonMode
+		{
+			VK_POLYGON_MODE_FILL = 0,
+			VK_POLYGON_MODE_LINE = 1,
+			VK_POLYGON_MODE_POINT = 2,
+			VK_POLYGON_MODE_FILL_RECTANGLE_NV = 1000153000,
+			VK_POLYGON_MODE_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkCullModeFlags
+		{
+			VK_CULL_MODE_NONE = 0,
+			VK_CULL_MODE_FRONT_BIT = 0x00000001,
+			VK_CULL_MODE_BACK_BIT = 0x00000002,
+			VK_CULL_MODE_FRONT_AND_BACK = 0x00000003,
+			VK_CULL_MODE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkFrontFace
+		{
+			VK_FRONT_FACE_COUNTER_CLOCKWISE = 0,
+			VK_FRONT_FACE_CLOCKWISE = 1,
+			VK_FRONT_FACE_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkVertexInputRate
+		{
+			VK_VERTEX_INPUT_RATE_VERTEX = 0,
+			VK_VERTEX_INPUT_RATE_INSTANCE = 1,
+			VK_VERTEX_INPUT_RATE_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkCompareOp
+		{
+			VK_COMPARE_OP_NEVER = 0,
+			VK_COMPARE_OP_LESS = 1,
+			VK_COMPARE_OP_EQUAL = 2,
+			VK_COMPARE_OP_LESS_OR_EQUAL = 3,
+			VK_COMPARE_OP_GREATER = 4,
+			VK_COMPARE_OP_NOT_EQUAL = 5,
+			VK_COMPARE_OP_GREATER_OR_EQUAL = 6,
+			VK_COMPARE_OP_ALWAYS = 7,
+			VK_COMPARE_OP_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkStencilOp
+		{
+			VK_STENCIL_OP_KEEP = 0,
+			VK_STENCIL_OP_ZERO = 1,
+			VK_STENCIL_OP_REPLACE = 2,
+			VK_STENCIL_OP_INCREMENT_AND_CLAMP = 3,
+			VK_STENCIL_OP_DECREMENT_AND_CLAMP = 4,
+			VK_STENCIL_OP_INVERT = 5,
+			VK_STENCIL_OP_INCREMENT_AND_WRAP = 6,
+			VK_STENCIL_OP_DECREMENT_AND_WRAP = 7,
+			VK_STENCIL_OP_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkLogicOp
+		{
+			VK_LOGIC_OP_CLEAR = 0,
+			VK_LOGIC_OP_AND = 1,
+			VK_LOGIC_OP_AND_REVERSE = 2,
+			VK_LOGIC_OP_COPY = 3,
+			VK_LOGIC_OP_AND_INVERTED = 4,
+			VK_LOGIC_OP_NO_OP = 5,
+			VK_LOGIC_OP_XOR = 6,
+			VK_LOGIC_OP_OR = 7,
+			VK_LOGIC_OP_NOR = 8,
+			VK_LOGIC_OP_EQUIVALENT = 9,
+			VK_LOGIC_OP_INVERT = 10,
+			VK_LOGIC_OP_OR_REVERSE = 11,
+			VK_LOGIC_OP_COPY_INVERTED = 12,
+			VK_LOGIC_OP_OR_INVERTED = 13,
+			VK_LOGIC_OP_NAND = 14,
+			VK_LOGIC_OP_SET = 15,
+			VK_LOGIC_OP_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkBlendFactor
+		{
+			VK_BLEND_FACTOR_ZERO = 0,
+			VK_BLEND_FACTOR_ONE = 1,
+			VK_BLEND_FACTOR_SRC_COLOR = 2,
+			VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR = 3,
+			VK_BLEND_FACTOR_DST_COLOR = 4,
+			VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR = 5,
+			VK_BLEND_FACTOR_SRC_ALPHA = 6,
+			VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA = 7,
+			VK_BLEND_FACTOR_DST_ALPHA = 8,
+			VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA = 9,
+			VK_BLEND_FACTOR_CONSTANT_COLOR = 10,
+			VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR = 11,
+			VK_BLEND_FACTOR_CONSTANT_ALPHA = 12,
+			VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA = 13,
+			VK_BLEND_FACTOR_SRC_ALPHA_SATURATE = 14,
+			VK_BLEND_FACTOR_SRC1_COLOR = 15,
+			VK_BLEND_FACTOR_ONE_MINUS_SRC1_COLOR = 16,
+			VK_BLEND_FACTOR_SRC1_ALPHA = 17,
+			VK_BLEND_FACTOR_ONE_MINUS_SRC1_ALPHA = 18,
+			VK_BLEND_FACTOR_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkBlendOp
+		{
+			VK_BLEND_OP_ADD = 0,
+			VK_BLEND_OP_SUBTRACT = 1,
+			VK_BLEND_OP_REVERSE_SUBTRACT = 2,
+			VK_BLEND_OP_MIN = 3,
+			VK_BLEND_OP_MAX = 4,
+			VK_BLEND_OP_ZERO_EXT = 1000148000,
+			VK_BLEND_OP_SRC_EXT = 1000148001,
+			VK_BLEND_OP_DST_EXT = 1000148002,
+			VK_BLEND_OP_SRC_OVER_EXT = 1000148003,
+			VK_BLEND_OP_DST_OVER_EXT = 1000148004,
+			VK_BLEND_OP_SRC_IN_EXT = 1000148005,
+			VK_BLEND_OP_DST_IN_EXT = 1000148006,
+			VK_BLEND_OP_SRC_OUT_EXT = 1000148007,
+			VK_BLEND_OP_DST_OUT_EXT = 1000148008,
+			VK_BLEND_OP_SRC_ATOP_EXT = 1000148009,
+			VK_BLEND_OP_DST_ATOP_EXT = 1000148010,
+			VK_BLEND_OP_XOR_EXT = 1000148011,
+			VK_BLEND_OP_MULTIPLY_EXT = 1000148012,
+			VK_BLEND_OP_SCREEN_EXT = 1000148013,
+			VK_BLEND_OP_OVERLAY_EXT = 1000148014,
+			VK_BLEND_OP_DARKEN_EXT = 1000148015,
+			VK_BLEND_OP_LIGHTEN_EXT = 1000148016,
+			VK_BLEND_OP_COLORDODGE_EXT = 1000148017,
+			VK_BLEND_OP_COLORBURN_EXT = 1000148018,
+			VK_BLEND_OP_HARDLIGHT_EXT = 1000148019,
+			VK_BLEND_OP_SOFTLIGHT_EXT = 1000148020,
+			VK_BLEND_OP_DIFFERENCE_EXT = 1000148021,
+			VK_BLEND_OP_EXCLUSION_EXT = 1000148022,
+			VK_BLEND_OP_INVERT_EXT = 1000148023,
+			VK_BLEND_OP_INVERT_RGB_EXT = 1000148024,
+			VK_BLEND_OP_LINEARDODGE_EXT = 1000148025,
+			VK_BLEND_OP_LINEARBURN_EXT = 1000148026,
+			VK_BLEND_OP_VIVIDLIGHT_EXT = 1000148027,
+			VK_BLEND_OP_LINEARLIGHT_EXT = 1000148028,
+			VK_BLEND_OP_PINLIGHT_EXT = 1000148029,
+			VK_BLEND_OP_HARDMIX_EXT = 1000148030,
+			VK_BLEND_OP_HSL_HUE_EXT = 1000148031,
+			VK_BLEND_OP_HSL_SATURATION_EXT = 1000148032,
+			VK_BLEND_OP_HSL_COLOR_EXT = 1000148033,
+			VK_BLEND_OP_HSL_LUMINOSITY_EXT = 1000148034,
+			VK_BLEND_OP_PLUS_EXT = 1000148035,
+			VK_BLEND_OP_PLUS_CLAMPED_EXT = 1000148036,
+			VK_BLEND_OP_PLUS_CLAMPED_ALPHA_EXT = 1000148037,
+			VK_BLEND_OP_PLUS_DARKER_EXT = 1000148038,
+			VK_BLEND_OP_MINUS_EXT = 1000148039,
+			VK_BLEND_OP_MINUS_CLAMPED_EXT = 1000148040,
+			VK_BLEND_OP_CONTRAST_EXT = 1000148041,
+			VK_BLEND_OP_INVERT_OVG_EXT = 1000148042,
+			VK_BLEND_OP_RED_EXT = 1000148043,
+			VK_BLEND_OP_GREEN_EXT = 1000148044,
+			VK_BLEND_OP_BLUE_EXT = 1000148045,
+			VK_BLEND_OP_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkColorComponentFlags
+		{
+			VK_COLOR_COMPONENT_R_BIT = 0x00000001,
+			VK_COLOR_COMPONENT_G_BIT = 0x00000002,
+			VK_COLOR_COMPONENT_B_BIT = 0x00000004,
+			VK_COLOR_COMPONENT_A_BIT = 0x00000008,
+			VK_COLOR_COMPONENT_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkDynamicState
+		{
+			VK_DYNAMIC_STATE_VIEWPORT = 0,
+			VK_DYNAMIC_STATE_SCISSOR = 1,
+			VK_DYNAMIC_STATE_LINE_WIDTH = 2,
+			VK_DYNAMIC_STATE_DEPTH_BIAS = 3,
+			VK_DYNAMIC_STATE_BLEND_CONSTANTS = 4,
+			VK_DYNAMIC_STATE_DEPTH_BOUNDS = 5,
+			VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK = 6,
+			VK_DYNAMIC_STATE_STENCIL_WRITE_MASK = 7,
+			VK_DYNAMIC_STATE_STENCIL_REFERENCE = 8,
+			VK_DYNAMIC_STATE_VIEWPORT_W_SCALING_NV = 1000087000,
+			VK_DYNAMIC_STATE_DISCARD_RECTANGLE_EXT = 1000099000,
+			VK_DYNAMIC_STATE_SAMPLE_LOCATIONS_EXT = 1000143000,
+			VK_DYNAMIC_STATE_VIEWPORT_SHADING_RATE_PALETTE_NV = 1000164004,
+			VK_DYNAMIC_STATE_VIEWPORT_COARSE_SAMPLE_ORDER_NV = 1000164006,
+			VK_DYNAMIC_STATE_EXCLUSIVE_SCISSOR_NV = 1000205001,
+			VK_DYNAMIC_STATE_LINE_STIPPLE_EXT = 1000259000,
+			VK_DYNAMIC_STATE_MAX_ENUM = 0x7FFFFFFF
 		}
 
 		#endregion
@@ -1188,16 +1436,16 @@ namespace Microsoft.Xna.Framework.Graphics
 			public uint maxFramebufferWidth;
 			public uint maxFramebufferHeight;
 			public uint maxFramebufferLayers;
-			public VkSampleCountFlagBits framebufferColorSampleCounts;
-			public VkSampleCountFlagBits framebufferDepthSampleCounts;
-			public VkSampleCountFlagBits framebufferStencilSampleCounts;
-			public VkSampleCountFlagBits framebufferNoAttachmentsSampleCounts;
+			public VkSampleCountFlags framebufferColorSampleCounts;
+			public VkSampleCountFlags framebufferDepthSampleCounts;
+			public VkSampleCountFlags framebufferStencilSampleCounts;
+			public VkSampleCountFlags framebufferNoAttachmentsSampleCounts;
 			public uint maxColorAttachments;
-			public VkSampleCountFlagBits sampledImageColorSampleCounts;
-			public VkSampleCountFlagBits sampledImageIntegerSampleCounts;
-			public VkSampleCountFlagBits sampledImageDepthSampleCounts;
-			public VkSampleCountFlagBits sampledImageStencilSampleCounts;
-			public VkSampleCountFlagBits storageImageSampleCounts;
+			public VkSampleCountFlags sampledImageColorSampleCounts;
+			public VkSampleCountFlags sampledImageIntegerSampleCounts;
+			public VkSampleCountFlags sampledImageDepthSampleCounts;
+			public VkSampleCountFlags sampledImageStencilSampleCounts;
+			public VkSampleCountFlags storageImageSampleCounts;
 			public uint maxSampleMaskWords;
 			public uint timestampComputeAndGraphics;
 			public float timestampPeriod;
@@ -1314,7 +1562,7 @@ namespace Microsoft.Xna.Framework.Graphics
 
 		private struct VkQueueFamilyProperties
 		{
-			public VkQueueFlagBits queueFlags;
+			public VkQueueFlags queueFlags;
 			public uint queueCount;
 			public uint timestampValidBits;
 			public VkExtent3D minImageTransferGranularity;
@@ -1338,7 +1586,7 @@ namespace Microsoft.Xna.Framework.Graphics
 		{
 			public VkStructureType sType;
 			public IntPtr pNext;
-			public VkDeviceQueueCreateFlagBits flags;
+			public VkDeviceQueueCreateFlags flags;
 			public uint queueFamilyIndex;
 			public uint queueCount;
 			public float* pQueuePriorities;
@@ -1352,10 +1600,10 @@ namespace Microsoft.Xna.Framework.Graphics
 			public VkExtent2D minImageExtent;
 			public VkExtent2D maxImageExtent;
 			public uint maxImageArrayLayers;
-			public VkSurfaceTransformFlagBitsKHR supportedTransforms;
-			public VkSurfaceTransformFlagBitsKHR currentTransform;
-			public VkCompositeAlphaFlagBitsKHR supportedCompositeAlpha;
-			public VkImageUsageFlagBits supportedUsageFlags;
+			public VkSurfaceTransformFlagsKHR supportedTransforms;
+			public VkSurfaceTransformFlagsKHR currentTransform;
+			public VkCompositeAlphaFlagsKHR supportedCompositeAlpha;
+			public VkImageUsageFlags supportedUsageFlags;
 		}
 
 		private unsafe struct VkDebugUtilsMessengerCallbackDataEXT
@@ -1399,8 +1647,8 @@ namespace Microsoft.Xna.Framework.Graphics
 			public VkStructureType sType;
 			public IntPtr pNext;
 			public uint flags;
-			public VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity;
-			public VkDebugUtilsMessageTypeFlagBitsEXT messageType;
+			public VkDebugUtilsMessageSeverityFlagsEXT messageSeverity;
+			public VkDebugUtilsMessageTypeFlagsEXT messageType;
 			public IntPtr pfnUserCallback;
 			public IntPtr pUserData;
 		}
@@ -1413,16 +1661,16 @@ namespace Microsoft.Xna.Framework.Graphics
 
 		private struct VkFormatProperties
 		{
-			public VkFormatFeatureFlagBits linearTilingFeatures;
-			public VkFormatFeatureFlagBits optimalTilingFeatures;
-			public VkFormatFeatureFlagBits bufferFeatures;
+			public VkFormatFeatureFlags linearTilingFeatures;
+			public VkFormatFeatureFlags optimalTilingFeatures;
+			public VkFormatFeatureFlags bufferFeatures;
 		}
 
 		private unsafe struct VkFramebufferCreateInfo
 		{
 			public VkStructureType sType;
 			public IntPtr pNext;
-			public VkFramebufferCreateFlagBits flags;
+			public VkFramebufferCreateFlags flags;
 			public ulong renderPass;
 			public uint attachmentCount;
 			public ulong* pImageViewAttachments;
@@ -1435,7 +1683,7 @@ namespace Microsoft.Xna.Framework.Graphics
 		{
 			public VkStructureType sType;
 			public IntPtr pNext;
-			public VkImageViewCreateFlagBits flags;
+			public VkImageViewCreateFlags flags;
 			public ulong image;
 			public VkImageViewType viewType;
 			public VkFormat format;
@@ -1467,7 +1715,7 @@ namespace Microsoft.Xna.Framework.Graphics
 
 		private struct VkImageSubresourceRange
 		{
-			public VkImageAspectFlagBits aspectMask;
+			public VkImageAspectFlags aspectMask;
 			public uint baseMipLevel;
 			public uint levelCount;
 			public uint baseArrayLayer;
@@ -1478,15 +1726,15 @@ namespace Microsoft.Xna.Framework.Graphics
 		{
 			public VkStructureType sType;
 			public IntPtr pNext;
-			public VkImageCreateFlagBits flags;
+			public VkImageCreateFlags flags;
 			public VkImageType imageType;
 			public VkFormat format;
 			public VkExtent3D extent;
 			public uint mipLevels;
 			public uint arrayLayers;
-			public VkSampleCountFlagBits samples;
+			public VkSampleCountFlags samples;
 			public VkImageTiling tiling;
-			public VkImageUsageFlagBits usage;
+			public VkImageUsageFlags usage;
 			public VkSharingMode sharingMode;
 			public uint queueFamilyIndexCount;
 			public uint* pQueueFamilyIndices;
@@ -1497,22 +1745,240 @@ namespace Microsoft.Xna.Framework.Graphics
 		{
 			public VkStructureType sType;
 			public IntPtr pNext;
-			public VkSwapchainCreateFlagBitsKHR flags;
+			public VkSwapchainCreateFlagsKHR flags;
 			public ulong surface;
 			public uint minImageCount;
 			public VkFormat imageFormat;
 			public VkColorSpaceKHR imageColorSpace;
 			public VkExtent2D imageExtent;
 			public uint imageArrayLayers;
-			public VkImageUsageFlagBits imageUsage;
+			public VkImageUsageFlags imageUsage;
 			public VkSharingMode imageSharingMode;
 			public uint queueFamilyIndexCount;
 			public uint* pQueueFamilyIndices;
-			public VkSurfaceTransformFlagBitsKHR preTransform;
-			public VkCompositeAlphaFlagBitsKHR compositeAlpha;
+			public VkSurfaceTransformFlagsKHR preTransform;
+			public VkCompositeAlphaFlagsKHR compositeAlpha;
 			public VkPresentModeKHR presentMode;
 			public uint clipped;
 			public ulong oldSwapchain;
+		}
+
+		private struct VkSpecializationMapEntry
+		{
+			public uint constantID;
+			public uint offset;
+			public uint size; // FIXME: size_t?
+		}
+
+		private unsafe struct VkSpecializationInfo
+		{
+			public uint mapEntryCount;
+			public VkSpecializationMapEntry* pMapEntries;
+			public uint dataSize; // FIXME: size_t?
+			public void* pData;
+		}
+
+		private unsafe struct VkPipelineShaderStageCreateInfo
+		{
+			public VkStructureType sType;
+			public IntPtr pNext;
+			public VkPipelineShaderStageCreateFlags flags;
+			public VkShaderStageFlags stage;
+			public ulong module;
+			public IntPtr pName;
+			public VkSpecializationInfo* pSpecializationInfo;
+		}
+
+		private struct VkVertexInputAttributeDescription
+		{
+			public uint location;
+			public uint binding;
+			public VkFormat format;
+			public uint offset;
+		}
+
+		private unsafe struct VkPipelineVertexInputStateCreateInfo
+		{
+			public VkStructureType sType;
+			public IntPtr pNext;
+			public uint flags;
+			public uint vertexBindingDescriptionCount;
+			public VkVertexInputBindingDescription* pVertexBindingDescriptions;
+			public uint vertexAttributeDescriptionCount;
+			public VkVertexInputAttributeDescription* pVertexAttributeDescriptions;
+		}
+
+		private struct VkVertexInputBindingDescription
+		{
+			public uint binding;
+			public uint stride;
+			public VkVertexInputRate inputRate;
+		}
+
+		private struct VkPipelineInputAssemblyStateCreateInfo
+		{
+			public VkStructureType sType;
+			public IntPtr pNext;
+			public uint flags;
+			public VkPrimitiveTopology topology;
+			public uint primitiveRestartEnable;
+		}
+
+		private struct VkPipelineTessellationStateCreateInfo
+		{
+			public VkStructureType sType;
+			public IntPtr pNext;
+			public uint flags;
+			public uint patchControlPoints;
+		}
+
+		private struct VkViewport
+		{
+			public float x;
+			public float y;
+			public float width;
+			public float height;
+			public float minDepth;
+			public float maxDepth;
+		}
+
+		struct VkOffset2D
+		{
+			public int x;
+			public int y;
+		}
+
+		private struct VkRect2D
+		{
+			public VkOffset2D offset;
+			public VkExtent2D extent;
+		}
+
+		private unsafe struct VkPipelineViewportStateCreateInfo
+		{
+			public VkStructureType sType;
+			public IntPtr pNext;
+			public uint flags;
+			public uint viewportCount;
+			public VkViewport* pViewports;
+			public uint scissorCount;
+			public VkRect2D* pScissors;
+		}
+
+		private struct VkPipelineRasterizationStateCreateInfo
+		{
+			public VkStructureType sType;
+			public IntPtr pNext;
+			public uint flags;
+			public uint depthClampEnable;
+			public uint rasterizerDiscardEnable;
+			public VkPolygonMode polygonMode;
+			public VkCullModeFlags cullMode;
+			public VkFrontFace frontFace;
+			public uint depthBiasEnable;
+			public float depthBiasConstantFactor;
+			public float depthBiasClamp;
+			public float depthBiasSlopeFactor;
+			public float lineWidth;
+		}
+
+		private unsafe struct VkPipelineMultisampleStateCreateInfo
+		{
+			public VkStructureType sType;
+			public IntPtr pNext;
+			public uint flags;
+			public VkSampleCountFlags rasterizationSamples;
+			public uint sampleShadingEnable;
+			public float minSampleShading;
+			public uint* pSampleMask;
+			public uint alphaToCoverageEnable;
+			public uint alphaToOneEnable;
+		}
+
+		private struct VkStencilOpState
+		{
+			public VkStencilOp failOp;
+			public VkStencilOp passOp;
+			public VkStencilOp depthFailOp;
+			public VkCompareOp compareOp;
+			public uint compareMask;
+			public uint writeMask;
+			public uint reference;
+		}
+
+		private struct VkPipelineDepthStencilStateCreateInfo
+		{
+			public VkStructureType sType;
+			public IntPtr pNext;
+			public uint flags;
+			public uint depthTestEnable;
+			public uint depthWriteEnable;
+			public VkCompareOp depthCompareOp;
+			public uint depthBoundsTestEnable;
+			public uint stencilTestEnable;
+			public VkStencilOpState front;
+			public VkStencilOpState back;
+			public float minDepthBounds;
+			public float maxDepthBounds;
+		}
+
+		private struct VkPipelineColorBlendAttachmentState
+		{
+			public uint blendEnable;
+			public VkBlendFactor srcColorBlendFactor;
+			public VkBlendFactor dstColorBlendFactor;
+			public VkBlendOp colorBlendOp;
+			public VkBlendFactor srcAlphaBlendFactor;
+			public VkBlendFactor dstAlphaBlendFactor;
+			public VkBlendOp alphaBlendOp;
+			public VkColorComponentFlags colorWriteMask;
+		}
+
+		private unsafe struct VkPipelineColorBlendStateCreateInfo
+		{
+			public VkStructureType sType;
+			public IntPtr pNext;
+			public uint flags;
+			public uint logicOpEnable;
+			public VkLogicOp logicOp;
+			public uint attachmentCount;
+			public VkPipelineColorBlendAttachmentState* pAttachments;
+			public float blendConstants_r;
+			public float blendConstants_g;
+			public float blendConstants_b;
+			public float blendConstants_a;
+		}
+
+		private unsafe struct VkPipelineDynamicStateCreateInfo
+		{
+			public VkStructureType sType;
+			public IntPtr pNext;
+			public uint flags;
+			public uint dynamicStateCount;
+			public VkDynamicState* pDynamicStates;
+		}
+
+		private unsafe struct VkGraphicsPipelineCreateInfo
+		{
+			public VkStructureType sType;
+			public IntPtr pNext;
+			public VkPipelineCreateFlags flags;
+			public uint stageCount;
+			public VkPipelineShaderStageCreateInfo* pStages;
+			public VkPipelineVertexInputStateCreateInfo* pVertexInputState;
+			public VkPipelineInputAssemblyStateCreateInfo* pInputAssemblyState;
+			public VkPipelineTessellationStateCreateInfo* pTessellationState;
+			public VkPipelineViewportStateCreateInfo* pViewportState;
+			public VkPipelineRasterizationStateCreateInfo* pRasterizationState;
+			public VkPipelineMultisampleStateCreateInfo* pMultisampleState;
+			public VkPipelineDepthStencilStateCreateInfo* pDepthStencilState;
+			public VkPipelineColorBlendStateCreateInfo* pColorBlendState;
+			public VkPipelineDynamicStateCreateInfo* pDynamicState;
+			public ulong layout;
+			public ulong renderPass;
+			public uint subpass;
+			public ulong basePipelineHandle;
+			public int basePipelineIndex;
 		}
 
 		#endregion
@@ -1956,8 +2422,8 @@ namespace Microsoft.Xna.Framework.Graphics
 		#region Private Delegates
 
 		private unsafe delegate uint PFN_vkDebugUtilsMessengerCallbackEXT(
-			VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-			VkDebugUtilsMessageTypeFlagBitsEXT messageType,
+			VkDebugUtilsMessageSeverityFlagsEXT messageSeverity,
+			VkDebugUtilsMessageTypeFlagsEXT messageType,
 			VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 			IntPtr pUserData
 		);

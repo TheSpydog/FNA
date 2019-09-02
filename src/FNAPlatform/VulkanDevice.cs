@@ -38,20 +38,228 @@ namespace Microsoft.Xna.Framework.Graphics
 {
 	internal partial class VulkanDevice : IGLDevice
 	{
+		#region Opaque Vulkan Handles
+
 		private IntPtr Instance;
 		private ulong WindowSurface;
 		private IntPtr PhysicalDevice;
 		private IntPtr Device;
 		private IntPtr GraphicsQueue;
 		private IntPtr PresentationQueue;
+		private ulong DebugMessenger;
+
+		#endregion
+
+		#region Queue Family Indices
 
 		private uint graphicsQueueFamilyIndex;
 		private uint presentationQueueFamilyIndex;
 
+		#endregion
+
+		#region Environment Variable Cache
+
 		private bool renderdocEnabled;
 		private bool validationEnabled;
 		private bool verboseValidationEnabled;
-		private ulong DebugMessenger;
+
+		#endregion
+
+		#region Blending State Variables
+
+		public Color BlendFactor
+		{
+			get
+			{
+				return blendColor;
+			}
+			set
+			{
+				if (value != blendColor)
+				{
+					blendColor = value;
+					// FIXME
+					//glBlendColor(
+					//	blendColor.R / 255.0f,
+					//	blendColor.G / 255.0f,
+					//	blendColor.B / 255.0f,
+					//	blendColor.A / 255.0f
+					//);
+				}
+			}
+		}
+
+		public int MultiSampleMask
+		{
+			get
+			{
+				return multisampleMask;
+			}
+			set
+			{
+				if (value != multisampleMask)
+				{
+					// FIXME
+					//if (value == -1)
+					//{
+					//	glDisable(GLenum.GL_SAMPLE_MASK);
+					//}
+					//else
+					//{
+					//	if (multisampleMask == -1)
+					//	{
+					//		glEnable(GLenum.GL_SAMPLE_MASK);
+					//	}
+					//	// FIXME: index...? -flibit
+					//	glSampleMaski(0, (uint)value);
+					//}
+					multisampleMask = value;
+				}
+			}
+		}
+
+		private bool alphaBlendEnable = false;
+		private Color blendColor = Color.Transparent;
+		private BlendFunction blendOp = BlendFunction.Add;
+		private BlendFunction blendOpAlpha = BlendFunction.Add;
+		private Blend srcBlend = Blend.One;
+		private Blend dstBlend = Blend.Zero;
+		private Blend srcBlendAlpha = Blend.One;
+		private Blend dstBlendAlpha = Blend.Zero;
+		private ColorWriteChannels colorWriteEnable = ColorWriteChannels.All;
+		private ColorWriteChannels colorWriteEnable1 = ColorWriteChannels.All;
+		private ColorWriteChannels colorWriteEnable2 = ColorWriteChannels.All;
+		private ColorWriteChannels colorWriteEnable3 = ColorWriteChannels.All;
+		private int multisampleMask = -1; // AKA 0xFFFFFFFF
+
+		#endregion
+
+		#region Depth State Variables
+
+		private bool zEnable = false;
+		private bool zWriteEnable = false;
+		private CompareFunction depthFunc = CompareFunction.Less;
+
+		#endregion
+
+		#region Stencil State Variables
+
+		public int ReferenceStencil
+		{
+			get
+			{
+				return stencilRef;
+			}
+			set
+			{
+				if (value != stencilRef)
+				{
+					stencilRef = value;
+					// FIXME
+					//if (separateStencilEnable)
+					//{
+					//	glStencilFuncSeparate(
+					//		GLenum.GL_FRONT,
+					//		XNAToGL.CompareFunc[(int)stencilFunc],
+					//		stencilRef,
+					//		stencilMask
+					//	);
+					//	glStencilFuncSeparate(
+					//		GLenum.GL_BACK,
+					//		XNAToGL.CompareFunc[(int)ccwStencilFunc],
+					//		stencilRef,
+					//		stencilMask
+					//	);
+					//}
+					//else
+					//{
+					//	glStencilFunc(
+					//		XNAToGL.CompareFunc[(int)stencilFunc],
+					//		stencilRef,
+					//		stencilMask
+					//	);
+					//}
+				}
+			}
+		}
+
+		private bool stencilEnable = false;
+		private int stencilWriteMask = -1; // AKA 0xFFFFFFFF, ugh -flibit
+		private bool separateStencilEnable = false;
+		private int stencilRef = 0;
+		private int stencilMask = -1; // AKA 0xFFFFFFFF, ugh -flibit
+		private CompareFunction stencilFunc = CompareFunction.Always;
+		private StencilOperation stencilFail = StencilOperation.Keep;
+		private StencilOperation stencilZFail = StencilOperation.Keep;
+		private StencilOperation stencilPass = StencilOperation.Keep;
+		private CompareFunction ccwStencilFunc = CompareFunction.Always;
+		private StencilOperation ccwStencilFail = StencilOperation.Keep;
+		private StencilOperation ccwStencilZFail = StencilOperation.Keep;
+		private StencilOperation ccwStencilPass = StencilOperation.Keep;
+
+		#endregion
+
+		#region Rasterizer State Variables
+
+		private bool scissorTestEnable = false;
+		private CullMode cullFrontFace = CullMode.None;
+		private FillMode fillMode = FillMode.Solid;
+		private float depthBias = 0.0f;
+		private float slopeScaleDepthBias = 0.0f;
+		private bool multiSampleEnable = true;
+
+		#endregion
+
+		#region Viewport State Variables
+
+		private Rectangle scissorRectangle = new Rectangle();
+		private Rectangle viewport = new Rectangle();
+		private float depthRangeMin = 0.0f;
+		private float depthRangeMax = 1.0f;
+
+		#endregion
+
+		#region Clear Cache Variables
+
+		private Vector4 currentClearColor = new Vector4(0, 0, 0, 0);
+		private float currentClearDepth = 1.0f;
+		private int currentClearStencil = 0;
+
+		#endregion
+
+		#region Vulkan Device Capabilities
+
+		public bool SupportsDxt1
+		{
+			get;
+			private set;
+		}
+
+		public bool SupportsS3tc
+		{
+			get;
+			private set;
+		}
+
+		public bool SupportsHardwareInstancing
+		{
+			get;
+			private set;
+		}
+
+		public int MaxTextureSlots
+		{
+			get;
+			private set;
+		}
+
+		public int MaxMultiSampleCount
+		{
+			get;
+			private set;
+		}
+
+		#endregion
 
 		#region Public Constructor
 
@@ -92,18 +300,15 @@ namespace Microsoft.Xna.Framework.Graphics
 
 			// Populate properties with device info
 			MaxTextureSlots = (int) deviceProperties.limits.maxPerStageDescriptorSamplers;
-
 			SupportsDxt1 = FormatSupported(
 				VkFormat.VK_FORMAT_BC1_RGBA_UNORM_BLOCK,
 				PhysicalDevice
 			);
-
 			SupportsS3tc = (
 				SupportsDxt1 ||
 				FormatSupported(VkFormat.VK_FORMAT_BC3_UNORM_BLOCK, PhysicalDevice) ||
 				FormatSupported(VkFormat.VK_FORMAT_BC5_UNORM_BLOCK, PhysicalDevice)
 			);
-
 			SupportsHardwareInstancing = true;
 
 			/* Check the max multisample count, override parameters if necessary */
@@ -135,11 +340,6 @@ namespace Microsoft.Xna.Framework.Graphics
 		{
 			(Backbuffer as VulkanBackbuffer).Dispose();
 
-			vkDestroySwapchainKHR(
-				Device,
-				(Backbuffer as VulkanBackbuffer).SwapchainHandle,
-				IntPtr.Zero
-			);
 			vkDestroyDevice(
 				Device,
 				IntPtr.Zero
@@ -306,19 +506,19 @@ namespace Microsoft.Xna.Framework.Graphics
 		}
 
 		private unsafe uint DebugCallback (
-			VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-			VkDebugUtilsMessageTypeFlagBitsEXT messageType,
+			VkDebugUtilsMessageSeverityFlagsEXT messageSeverity,
+			VkDebugUtilsMessageTypeFlagsEXT messageType,
 			VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 			IntPtr pUserData
 		) {
 			string message = UTF8_ToManaged(pCallbackData->pMessage);
 
-			if (messageSeverity == VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+			if (messageSeverity == VkDebugUtilsMessageSeverityFlagsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
 			{
 				// This is serious, so throw an exception.
 				throw new Exception("Vulkan Error: " + message);
 			}
-			else if (messageSeverity == VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+			else if (messageSeverity == VkDebugUtilsMessageSeverityFlagsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
 			{
 				FNALoggerEXT.LogWarn("WARNING: " + message);
 			}
@@ -615,33 +815,33 @@ namespace Microsoft.Xna.Framework.Graphics
 			}
 		}
 
-		private int GetSampleCount(VkSampleCountFlagBits flags)
+		private int GetSampleCount(VkSampleCountFlags flags)
 		{
-			if ((flags & VkSampleCountFlagBits.VK_SAMPLE_COUNT_64_BIT) != 0)
+			if ((flags & VkSampleCountFlags.VK_SAMPLE_COUNT_64_BIT) != 0)
 			{
 				return 64;
 			}
-			else if ((flags & VkSampleCountFlagBits.VK_SAMPLE_COUNT_32_BIT) != 0)
+			else if ((flags & VkSampleCountFlags.VK_SAMPLE_COUNT_32_BIT) != 0)
 			{
 				return 32;
 			}
-			else if ((flags & VkSampleCountFlagBits.VK_SAMPLE_COUNT_16_BIT) != 0)
+			else if ((flags & VkSampleCountFlags.VK_SAMPLE_COUNT_16_BIT) != 0)
 			{
 				return 16;
 			}
-			else if ((flags & VkSampleCountFlagBits.VK_SAMPLE_COUNT_8_BIT) != 0)
+			else if ((flags & VkSampleCountFlags.VK_SAMPLE_COUNT_8_BIT) != 0)
 			{
 				return 8;
 			}
-			else if ((flags & VkSampleCountFlagBits.VK_SAMPLE_COUNT_4_BIT) != 0)
+			else if ((flags & VkSampleCountFlags.VK_SAMPLE_COUNT_4_BIT) != 0)
 			{
 				return 4;
 			}
-			else if ((flags & VkSampleCountFlagBits.VK_SAMPLE_COUNT_2_BIT) != 0)
+			else if ((flags & VkSampleCountFlags.VK_SAMPLE_COUNT_2_BIT) != 0)
 			{
 				return 2;
 			}
-			else if ((flags & VkSampleCountFlagBits.VK_SAMPLE_COUNT_1_BIT) != 0)
+			else if ((flags & VkSampleCountFlags.VK_SAMPLE_COUNT_1_BIT) != 0)
 			{
 				return 1;
 			}
@@ -649,35 +849,35 @@ namespace Microsoft.Xna.Framework.Graphics
 			return 0;
 		}
 
-		private VkSampleCountFlagBits GetSampleCountFlags(int samples)
+		private VkSampleCountFlags GetSampleCountFlags(int samples)
 		{
 			if (samples >= 64)
 			{
-				return VkSampleCountFlagBits.VK_SAMPLE_COUNT_64_BIT;
+				return VkSampleCountFlags.VK_SAMPLE_COUNT_64_BIT;
 			}
 			else if (samples >= 32)
 			{
-				return VkSampleCountFlagBits.VK_SAMPLE_COUNT_32_BIT;
+				return VkSampleCountFlags.VK_SAMPLE_COUNT_32_BIT;
 			}
 			else if (samples >= 16)
 			{
-				return VkSampleCountFlagBits.VK_SAMPLE_COUNT_16_BIT;
+				return VkSampleCountFlags.VK_SAMPLE_COUNT_16_BIT;
 			}
 			else if (samples >= 8)
 			{
-				return VkSampleCountFlagBits.VK_SAMPLE_COUNT_8_BIT;
+				return VkSampleCountFlags.VK_SAMPLE_COUNT_8_BIT;
 			}
 			else if (samples >= 4)
 			{
-				return VkSampleCountFlagBits.VK_SAMPLE_COUNT_4_BIT;
+				return VkSampleCountFlags.VK_SAMPLE_COUNT_4_BIT;
 			}
 			else if (samples >= 2)
 			{
-				return VkSampleCountFlagBits.VK_SAMPLE_COUNT_2_BIT;
+				return VkSampleCountFlags.VK_SAMPLE_COUNT_2_BIT;
 			}
 			else if (samples == 1)
 			{
-				return VkSampleCountFlagBits.VK_SAMPLE_COUNT_1_BIT;
+				return VkSampleCountFlags.VK_SAMPLE_COUNT_1_BIT;
 			}
 
 			return 0;
@@ -791,10 +991,10 @@ namespace Microsoft.Xna.Framework.Graphics
 
 		private unsafe VkDebugUtilsMessengerCreateInfoEXT CreateDebugMessengerCreateInfo()
 		{
-			VkDebugUtilsMessageSeverityFlagBitsEXT severityFlags =
-				VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
-				VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-				VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
+			VkDebugUtilsMessageSeverityFlagsEXT severityFlags =
+				VkDebugUtilsMessageSeverityFlagsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
+				VkDebugUtilsMessageSeverityFlagsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+				VkDebugUtilsMessageSeverityFlagsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
 
 			if (verboseValidationEnabled)
 			{
@@ -802,13 +1002,13 @@ namespace Microsoft.Xna.Framework.Graphics
 				 * Some of it is useful, most of it not so much.
 				 * -caleb
 				 */
-				severityFlags |= VkDebugUtilsMessageSeverityFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
+				severityFlags |= VkDebugUtilsMessageSeverityFlagsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
 			}
 
-			VkDebugUtilsMessageTypeFlagBitsEXT messageFlags =
-				VkDebugUtilsMessageTypeFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-				VkDebugUtilsMessageTypeFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-				VkDebugUtilsMessageTypeFlagBitsEXT.VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+			VkDebugUtilsMessageTypeFlagsEXT messageFlags =
+				VkDebugUtilsMessageTypeFlagsEXT.VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+				VkDebugUtilsMessageTypeFlagsEXT.VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+				VkDebugUtilsMessageTypeFlagsEXT.VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 
 			return new VkDebugUtilsMessengerCreateInfoEXT
 			{
@@ -826,7 +1026,7 @@ namespace Microsoft.Xna.Framework.Graphics
 
 		private bool QueueFamilySupportsGraphics(VkQueueFamilyProperties family)
 		{
-			return (family.queueFlags & VkQueueFlagBits.VK_QUEUE_GRAPHICS_BIT) != 0;
+			return (family.queueFlags & VkQueueFlags.VK_QUEUE_GRAPHICS_BIT) != 0;
 		}
 
 		private bool QueueFamilySupportsPresentation(
@@ -851,50 +1051,13 @@ namespace Microsoft.Xna.Framework.Graphics
 
 		#endregion
 
-		public Color BlendFactor { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-		public int MultiSampleMask { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-		public int ReferenceStencil { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+		#region Graphics Pipeline
 
-		#region Vulkan Device Capabilities
-
-		public bool SupportsDxt1
+		private ulong GetPipeline()
 		{
-			get;
-			private set;
+			// FIXME: TODO
+			return 0;
 		}
-
-		public bool SupportsS3tc
-		{
-			get;
-			private set;
-		}
-
-		public bool SupportsHardwareInstancing
-		{
-			get;
-			private set;
-		}
-
-		public int MaxTextureSlots
-		{
-			get;
-			private set;
-		}
-
-		public int MaxMultiSampleCount
-		{
-			get;
-			private set;
-		}
-
-		#endregion
-
-		#region Viewport State Variables
-
-		private Rectangle scissorRectangle = new Rectangle();
-		private Rectangle viewport = new Rectangle();
-		private float depthRangeMin = 0.0f;
-		private float depthRangeMax = 1.0f;
 
 		#endregion
 
@@ -956,16 +1119,7 @@ namespace Microsoft.Xna.Framework.Graphics
 
 		#endregion
 
-		#region Vulkan Renderbuffer Container Class
-
-		private class VulkanRenderbuffer : IGLRenderbuffer
-		{
-
-		}
-
-		#endregion
-
-		#region Faux-Backbuffer and Swapchain
+		#region Faux-Backbuffer / Swapchain
 
 		public IGLBackbuffer Backbuffer
 		{
@@ -975,20 +1129,12 @@ namespace Microsoft.Xna.Framework.Graphics
 
 		private class VulkanBackbuffer : IGLBackbuffer
 		{
+			// FIXME: Does this need to be public?
 			public ulong SwapchainHandle
 			{
 				get
 				{
 					return swapchainHandle;
-				}
-			}
-
-			// FIXME: Do these need to be stored at all?
-			public ulong[] SwapchainImages
-			{
-				get
-				{
-					return swapchainImages;
 				}
 			}
 
@@ -1027,7 +1173,6 @@ namespace Microsoft.Xna.Framework.Graphics
 			private VulkanDevice vkDevice;
 			private VkPresentModeKHR[] supportedPresentModes;
 			private ulong swapchainHandle;
-			private ulong[] swapchainImages;
 			private ulong[] swapchainImageViews;
 
 			public VulkanBackbuffer(
@@ -1154,8 +1299,8 @@ namespace Microsoft.Xna.Framework.Graphics
 				// Define how the images will be used
 				createInfo.imageArrayLayers = 1;
 				createInfo.imageUsage = (
-					VkImageUsageFlagBits.VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-					VkImageUsageFlagBits.VK_IMAGE_USAGE_TRANSFER_DST_BIT
+					VkImageUsageFlags.VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+					VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_DST_BIT
 				);
 
 				// Define concurrency details (if needed)
@@ -1186,7 +1331,7 @@ namespace Microsoft.Xna.Framework.Graphics
 				createInfo.preTransform = surfaceCapabilities.currentTransform;
 
 				// Make the surface opaque
-				createInfo.compositeAlpha = VkCompositeAlphaFlagBitsKHR.VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+				createInfo.compositeAlpha = VkCompositeAlphaFlagsKHR.VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 
 				// Check if the requested present interval is supported
 				PresentInterval presentInterval = presentationParameters.PresentationInterval;
@@ -1235,7 +1380,7 @@ namespace Microsoft.Xna.Framework.Graphics
 					out numSwapchainImages,
 					null
 				);
-				swapchainImages = new ulong[numSwapchainImages];
+				ulong[] swapchainImages = new ulong[numSwapchainImages];
 				fixed (ulong* swapchainImagesPtr = swapchainImages)
 				{
 					res = vkDevice.vkGetSwapchainImagesKHR(
@@ -1265,7 +1410,7 @@ namespace Microsoft.Xna.Framework.Graphics
 						components = VkComponentMapping.Identity,
 						subresourceRange = new VkImageSubresourceRange
 						{
-							aspectMask = VkImageAspectFlagBits.VK_IMAGE_ASPECT_COLOR_BIT,
+							aspectMask = VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT,
 							baseMipLevel = 0,
 							levelCount = 1,
 							baseArrayLayer = 0,
@@ -1298,6 +1443,13 @@ namespace Microsoft.Xna.Framework.Graphics
 					);
 				}
 				swapchainImageViews = null;
+
+				// Destroy the swapchain itself
+				vkDevice.vkDestroySwapchainKHR(
+					vkDevice.Device,
+					SwapchainHandle,
+					IntPtr.Zero
+				);
 			}
 		}
 
