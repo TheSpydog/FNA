@@ -504,7 +504,6 @@ namespace Microsoft.Xna.Framework.Graphics
 			VK_RESULT_MAX_ENUM = 0x7FFFFFFF
 		}
 
-		[Flags]
 		private enum VkDebugUtilsMessageSeverityFlagBitsEXT
 		{
 			VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT = 0x00000001,
@@ -514,7 +513,6 @@ namespace Microsoft.Xna.Framework.Graphics
 			VK_DEBUG_UTILS_MESSAGE_SEVERITY_FLAG_BITS_MAX_ENUM_EXT = 0x7FFFFFFF
 		}
 
-		[Flags]
 		private enum VkDebugUtilsMessageTypeFlagBitsEXT
 		{
 			VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT = 0x00000001,
@@ -579,7 +577,6 @@ namespace Microsoft.Xna.Framework.Graphics
 			VK_PHYSICAL_DEVICE_TYPE_MAX_ENUM = 0x7FFFFFFF
 		}
 
-		[Flags]
 		private enum VkSampleCountFlagBits
 		{
 			VK_SAMPLE_COUNT_1_BIT = 0x00000001,
@@ -592,7 +589,6 @@ namespace Microsoft.Xna.Framework.Graphics
 			VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
 		}
 
-		[Flags]
 		private enum VkQueueFlagBits
 		{
 			VK_QUEUE_GRAPHICS_BIT = 0x00000001,
@@ -603,14 +599,12 @@ namespace Microsoft.Xna.Framework.Graphics
 			VK_QUEUE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
 		}
 
-		[Flags]
 		private enum VkDeviceQueueCreateFlagBits
 		{
 			VK_DEVICE_QUEUE_CREATE_PROTECTED_BIT = 0x00000001,
 			VK_DEVICE_QUEUE_CREATE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
 		}
 
-		[Flags]
 		private enum VkSurfaceTransformFlagBitsKHR
 		{
 			VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR = 0x00000001,
@@ -625,7 +619,6 @@ namespace Microsoft.Xna.Framework.Graphics
 			VK_SURFACE_TRANSFORM_FLAG_BITS_MAX_ENUM_KHR = 0x7FFFFFFF
 		}
 
-		[Flags]
 		private enum VkCompositeAlphaFlagBitsKHR
 		{
 			VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR = 0x00000001,
@@ -635,7 +628,6 @@ namespace Microsoft.Xna.Framework.Graphics
 			VK_COMPOSITE_ALPHA_FLAG_BITS_MAX_ENUM_KHR = 0x7FFFFFFF
 		}
 
-		[Flags]
 		private enum VkImageUsageFlagBits
 		{
 			VK_IMAGE_USAGE_TRANSFER_SRC_BIT = 0x00000001,
@@ -842,7 +834,25 @@ namespace Microsoft.Xna.Framework.Graphics
 
 		private enum VkColorSpaceKHR
 		{
-			VK_COLOR_SPACE_SRGB_NONLINEAR_KHR = 0
+			VK_COLOR_SPACE_SRGB_NONLINEAR_KHR = 0,
+			VK_COLOR_SPACE_DISPLAY_P3_NONLINEAR_EXT = 1000104001,
+			VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT = 1000104002,
+			VK_COLOR_SPACE_DISPLAY_P3_LINEAR_EXT = 1000104003,
+			VK_COLOR_SPACE_DCI_P3_NONLINEAR_EXT = 1000104004,
+			VK_COLOR_SPACE_BT709_LINEAR_EXT = 1000104005,
+			VK_COLOR_SPACE_BT709_NONLINEAR_EXT = 1000104006,
+			VK_COLOR_SPACE_BT2020_LINEAR_EXT = 1000104007,
+			VK_COLOR_SPACE_HDR10_ST2084_EXT = 1000104008,
+			VK_COLOR_SPACE_DOLBYVISION_EXT = 1000104009,
+			VK_COLOR_SPACE_HDR10_HLG_EXT = 1000104010,
+			VK_COLOR_SPACE_ADOBERGB_LINEAR_EXT = 1000104011,
+			VK_COLOR_SPACE_ADOBERGB_NONLINEAR_EXT = 1000104012,
+			VK_COLOR_SPACE_PASS_THROUGH_EXT = 1000104013,
+			VK_COLOR_SPACE_EXTENDED_SRGB_NONLINEAR_EXT = 1000104014,
+			VK_COLOR_SPACE_DISPLAY_NATIVE_AMD = 1000213000,
+			VK_COLORSPACE_SRGB_NONLINEAR_KHR = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR,
+			VK_COLOR_SPACE_DCI_P3_LINEAR_EXT = VK_COLOR_SPACE_DISPLAY_P3_LINEAR_EXT,
+			VK_COLOR_SPACE_MAX_ENUM_KHR = 0x7FFFFFFF
 		}
 
 		private enum VkPresentModeKHR
@@ -891,6 +901,140 @@ namespace Microsoft.Xna.Framework.Graphics
 			VK_FORMAT_FEATURE_COSITED_CHROMA_SAMPLES_BIT_KHR = VK_FORMAT_FEATURE_COSITED_CHROMA_SAMPLES_BIT,
 			VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_CUBIC_BIT_EXT = VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_CUBIC_BIT_IMG,
 			VK_FORMAT_FEATURE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkFramebufferCreateFlagBits
+		{
+			VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT_KHR = 0x00000001,
+			VK_FRAMEBUFFER_CREATE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkImageViewCreateFlagBits
+		{
+			VK_IMAGE_VIEW_CREATE_FRAGMENT_DENSITY_MAP_DYNAMIC_BIT_EXT = 0x00000001,
+			VK_IMAGE_VIEW_CREATE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkImageViewType
+		{
+			VK_IMAGE_VIEW_TYPE_1D = 0,
+			VK_IMAGE_VIEW_TYPE_2D = 1,
+			VK_IMAGE_VIEW_TYPE_3D = 2,
+			VK_IMAGE_VIEW_TYPE_CUBE = 3,
+			VK_IMAGE_VIEW_TYPE_1D_ARRAY = 4,
+			VK_IMAGE_VIEW_TYPE_2D_ARRAY = 5,
+			VK_IMAGE_VIEW_TYPE_CUBE_ARRAY = 6,
+			VK_IMAGE_VIEW_TYPE_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkComponentSwizzle
+		{
+			VK_COMPONENT_SWIZZLE_IDENTITY = 0,
+			VK_COMPONENT_SWIZZLE_ZERO = 1,
+			VK_COMPONENT_SWIZZLE_ONE = 2,
+			VK_COMPONENT_SWIZZLE_R = 3,
+			VK_COMPONENT_SWIZZLE_G = 4,
+			VK_COMPONENT_SWIZZLE_B = 5,
+			VK_COMPONENT_SWIZZLE_A = 6,
+			VK_COMPONENT_SWIZZLE_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkImageAspectFlagBits
+		{
+			VK_IMAGE_ASPECT_COLOR_BIT = 0x00000001,
+			VK_IMAGE_ASPECT_DEPTH_BIT = 0x00000002,
+			VK_IMAGE_ASPECT_STENCIL_BIT = 0x00000004,
+			VK_IMAGE_ASPECT_METADATA_BIT = 0x00000008,
+			VK_IMAGE_ASPECT_PLANE_0_BIT = 0x00000010,
+			VK_IMAGE_ASPECT_PLANE_1_BIT = 0x00000020,
+			VK_IMAGE_ASPECT_PLANE_2_BIT = 0x00000040,
+			VK_IMAGE_ASPECT_MEMORY_PLANE_0_BIT_EXT = 0x00000080,
+			VK_IMAGE_ASPECT_MEMORY_PLANE_1_BIT_EXT = 0x00000100,
+			VK_IMAGE_ASPECT_MEMORY_PLANE_2_BIT_EXT = 0x00000200,
+			VK_IMAGE_ASPECT_MEMORY_PLANE_3_BIT_EXT = 0x00000400,
+			VK_IMAGE_ASPECT_PLANE_0_BIT_KHR = VK_IMAGE_ASPECT_PLANE_0_BIT,
+			VK_IMAGE_ASPECT_PLANE_1_BIT_KHR = VK_IMAGE_ASPECT_PLANE_1_BIT,
+			VK_IMAGE_ASPECT_PLANE_2_BIT_KHR = VK_IMAGE_ASPECT_PLANE_2_BIT,
+			VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkImageCreateFlagBits
+		{
+			VK_IMAGE_CREATE_SPARSE_BINDING_BIT = 0x00000001,
+			VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT = 0x00000002,
+			VK_IMAGE_CREATE_SPARSE_ALIASED_BIT = 0x00000004,
+			VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT = 0x00000008,
+			VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT = 0x00000010,
+			VK_IMAGE_CREATE_ALIAS_BIT = 0x00000400,
+			VK_IMAGE_CREATE_SPLIT_INSTANCE_BIND_REGIONS_BIT = 0x00000040,
+			VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT = 0x00000020,
+			VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT = 0x00000080,
+			VK_IMAGE_CREATE_EXTENDED_USAGE_BIT = 0x00000100,
+			VK_IMAGE_CREATE_PROTECTED_BIT = 0x00000800,
+			VK_IMAGE_CREATE_DISJOINT_BIT = 0x00000200,
+			VK_IMAGE_CREATE_CORNER_SAMPLED_BIT_NV = 0x00002000,
+			VK_IMAGE_CREATE_SAMPLE_LOCATIONS_COMPATIBLE_DEPTH_BIT_EXT = 0x00001000,
+			VK_IMAGE_CREATE_SUBSAMPLED_BIT_EXT = 0x00004000,
+			VK_IMAGE_CREATE_SPLIT_INSTANCE_BIND_REGIONS_BIT_KHR = VK_IMAGE_CREATE_SPLIT_INSTANCE_BIND_REGIONS_BIT,
+			VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT_KHR = VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT,
+			VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT_KHR = VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT,
+			VK_IMAGE_CREATE_EXTENDED_USAGE_BIT_KHR = VK_IMAGE_CREATE_EXTENDED_USAGE_BIT,
+			VK_IMAGE_CREATE_DISJOINT_BIT_KHR = VK_IMAGE_CREATE_DISJOINT_BIT,
+			VK_IMAGE_CREATE_ALIAS_BIT_KHR = VK_IMAGE_CREATE_ALIAS_BIT,
+			VK_IMAGE_CREATE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkImageType
+		{
+			VK_IMAGE_TYPE_1D = 0,
+			VK_IMAGE_TYPE_2D = 1,
+			VK_IMAGE_TYPE_3D = 2,
+			VK_IMAGE_TYPE_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkImageTiling
+		{
+			VK_IMAGE_TILING_OPTIMAL = 0,
+			VK_IMAGE_TILING_LINEAR = 1,
+			VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT = 1000158000,
+			VK_IMAGE_TILING_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkSharingMode
+		{
+			VK_SHARING_MODE_EXCLUSIVE = 0,
+			VK_SHARING_MODE_CONCURRENT = 1,
+			VK_SHARING_MODE_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkImageLayout
+		{
+			VK_IMAGE_LAYOUT_UNDEFINED = 0,
+			VK_IMAGE_LAYOUT_GENERAL = 1,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL = 2,
+			VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL = 3,
+			VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL = 4,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL = 5,
+			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL = 6,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL = 7,
+			VK_IMAGE_LAYOUT_PREINITIALIZED = 8,
+			VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL = 1000117000,
+			VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL = 1000117001,
+			VK_IMAGE_LAYOUT_PRESENT_SRC_KHR = 1000001002,
+			VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR = 1000111000,
+			VK_IMAGE_LAYOUT_SHADING_RATE_OPTIMAL_NV = 1000164003,
+			VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT = 1000218000,
+			VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL_KHR = VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL,
+			VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL_KHR = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL,
+			VK_IMAGE_LAYOUT_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkSwapchainCreateFlagBitsKHR
+		{
+			VK_SWAPCHAIN_CREATE_SPLIT_INSTANCE_BIND_REGIONS_BIT_KHR = 0x00000001,
+			VK_SWAPCHAIN_CREATE_PROTECTED_BIT_KHR = 0x00000002,
+			VK_SWAPCHAIN_CREATE_MUTABLE_FORMAT_BIT_KHR = 0x00000004,
+			VK_SWAPCHAIN_CREATE_FLAG_BITS_MAX_ENUM_KHR = 0x7FFFFFFF
 		}
 
 		#endregion
@@ -1146,6 +1290,12 @@ namespace Microsoft.Xna.Framework.Graphics
 		{
 			public uint width;
 			public uint height;
+
+			public VkExtent2D(uint w, uint h)
+			{
+				width = w;
+				height = h;
+			}
 		}
 
 		private struct VkExtent3D
@@ -1153,6 +1303,13 @@ namespace Microsoft.Xna.Framework.Graphics
 			public uint width;
 			public uint height;
 			public uint depth;
+
+			public VkExtent3D(uint w, uint h, uint d)
+			{
+				width = w;
+				height = h;
+				depth = d;
+			}
 		}
 
 		private struct VkQueueFamilyProperties
@@ -1259,6 +1416,103 @@ namespace Microsoft.Xna.Framework.Graphics
 			public VkFormatFeatureFlagBits linearTilingFeatures;
 			public VkFormatFeatureFlagBits optimalTilingFeatures;
 			public VkFormatFeatureFlagBits bufferFeatures;
+		}
+
+		private unsafe struct VkFramebufferCreateInfo
+		{
+			public VkStructureType sType;
+			public IntPtr pNext;
+			public VkFramebufferCreateFlagBits flags;
+			public ulong renderPass;
+			public uint attachmentCount;
+			public ulong* pImageViewAttachments;
+			public uint width;
+			public uint height;
+			public uint layers;
+		}
+
+		private struct VkImageViewCreateInfo
+		{
+			public VkStructureType sType;
+			public IntPtr pNext;
+			public VkImageViewCreateFlagBits flags;
+			public ulong image;
+			public VkImageViewType viewType;
+			public VkFormat format;
+			public VkComponentMapping components;
+			public VkImageSubresourceRange subresourceRange;
+		}
+
+		private struct VkComponentMapping
+		{
+			public VkComponentSwizzle r;
+			public VkComponentSwizzle g;
+			public VkComponentSwizzle b;
+			public VkComponentSwizzle a;
+
+			public static VkComponentMapping Identity
+			{
+				get
+				{
+					return new VkComponentMapping
+					{
+						r = VkComponentSwizzle.VK_COMPONENT_SWIZZLE_IDENTITY,
+						g = VkComponentSwizzle.VK_COMPONENT_SWIZZLE_IDENTITY,
+						b = VkComponentSwizzle.VK_COMPONENT_SWIZZLE_IDENTITY,
+						a = VkComponentSwizzle.VK_COMPONENT_SWIZZLE_IDENTITY
+					};
+				}
+			}
+		}
+
+		private struct VkImageSubresourceRange
+		{
+			public VkImageAspectFlagBits aspectMask;
+			public uint baseMipLevel;
+			public uint levelCount;
+			public uint baseArrayLayer;
+			public uint layerCount;
+		}
+
+		private unsafe struct VkImageCreateInfo
+		{
+			public VkStructureType sType;
+			public IntPtr pNext;
+			public VkImageCreateFlagBits flags;
+			public VkImageType imageType;
+			public VkFormat format;
+			public VkExtent3D extent;
+			public uint mipLevels;
+			public uint arrayLayers;
+			public VkSampleCountFlagBits samples;
+			public VkImageTiling tiling;
+			public VkImageUsageFlagBits usage;
+			public VkSharingMode sharingMode;
+			public uint queueFamilyIndexCount;
+			public uint* pQueueFamilyIndices;
+			public VkImageLayout initialLayout;
+		}
+
+		private unsafe struct VkSwapchainCreateInfoKHR
+		{
+			public VkStructureType sType;
+			public IntPtr pNext;
+			public VkSwapchainCreateFlagBitsKHR flags;
+			public ulong surface;
+			public uint minImageCount;
+			public VkFormat imageFormat;
+			public VkColorSpaceKHR imageColorSpace;
+			public VkExtent2D imageExtent;
+			public uint imageArrayLayers;
+			public VkImageUsageFlagBits imageUsage;
+			public VkSharingMode imageSharingMode;
+			public uint queueFamilyIndexCount;
+			public uint* pQueueFamilyIndices;
+			public VkSurfaceTransformFlagBitsKHR preTransform;
+			public VkCompositeAlphaFlagBitsKHR compositeAlpha;
+			public VkPresentModeKHR presentMode;
+			public uint clipped;
+			public ulong oldSwapchain;
 		}
 
 		#endregion
@@ -1419,6 +1673,10 @@ namespace Microsoft.Xna.Framework.Graphics
 				"vkCreateDevice",
 				typeof(CreateDevice)
 			);
+			vkDestroyDevice = (DestroyDevice) GetProcAddress(
+				"vkDestroyDevice",
+				typeof(DestroyDevice)
+			);
 			vkEnumerateDeviceExtensionProperties = (EnumerateDeviceExtensionProperties) GetProcAddress(
 				"vkEnumerateDeviceExtensionProperties",
 				typeof(EnumerateDeviceExtensionProperties)
@@ -1427,6 +1685,12 @@ namespace Microsoft.Xna.Framework.Graphics
 				"vkGetDeviceQueue",
 				typeof(GetDeviceQueue)
 			);
+			vkDestroySurfaceKHR = (DestroySurfaceKHR) GetProcAddress(
+				"vkDestroySurfaceKHR",
+				typeof(DestroySurfaceKHR)
+			);
+
+			// FIXME: Need to check for extension?
 			vkGetPhysicalDeviceSurfaceSupportKHR = (GetPhysicalDeviceSurfaceSupportKHR) GetProcAddress(
 				"vkGetPhysicalDeviceSurfaceSupportKHR",
 				typeof(GetPhysicalDeviceSurfaceSupportKHR)
@@ -1447,9 +1711,36 @@ namespace Microsoft.Xna.Framework.Graphics
 				"vkGetPhysicalDeviceSurfacePresentModesKHR",
 				typeof(GetPhysicalDeviceSurfacePresentModesKHR)
 			);
+
 			vkGetPhysicalDeviceFormatProperties = (GetPhysicalDeviceFormatProperties) GetProcAddress(
 				"vkGetPhysicalDeviceFormatProperties",
 				typeof(GetPhysicalDeviceFormatProperties)
+			);
+			vkCreateImage = (CreateImage) GetProcAddress(
+				"vkCreateImage",
+				typeof(CreateImage)
+			);
+			vkCreateImageView = (CreateImageView) GetProcAddress(
+				"vkCreateImageView",
+				typeof(CreateImageView)
+			);
+			vkDestroyImageView = (DestroyImageView) GetProcAddress(
+				"vkDestroyImageView",
+				typeof(DestroyImageView)
+			);
+
+			// FIXME: Need to check for extension here?
+			vkCreateSwapchainKHR = (CreateSwapchainKHR) GetProcAddress(
+				"vkCreateSwapchainKHR",
+				typeof(CreateSwapchainKHR)
+			);
+			vkDestroySwapchainKHR = (DestroySwapchainKHR) GetProcAddress(
+				"vkDestroySwapchainKHR",
+				typeof(DestroySwapchainKHR)
+			);
+			vkGetSwapchainImagesKHR = (GetSwapchainImagesKHR) GetProcAddress(
+				"vkGetSwapchainImagesKHR",
+				typeof(GetSwapchainImagesKHR)
 			);
 
 			if (validationEnabled)
@@ -1540,6 +1831,12 @@ namespace Microsoft.Xna.Framework.Graphics
 		);
 		private EnumerateDeviceExtensionProperties vkEnumerateDeviceExtensionProperties;
 
+		private unsafe delegate void DestroyDevice(
+			IntPtr device,
+			IntPtr pAllocator
+		);
+		private DestroyDevice vkDestroyDevice;
+
 		private delegate void GetDeviceQueue(
 			IntPtr device,
 			uint queueFamilyIndex,
@@ -1586,6 +1883,59 @@ namespace Microsoft.Xna.Framework.Graphics
 		);
 		private GetPhysicalDeviceFormatProperties vkGetPhysicalDeviceFormatProperties;
 
+		private delegate void DestroySurfaceKHR(
+			IntPtr instance,
+			ulong surface,
+			IntPtr pAllocator
+		);
+		private DestroySurfaceKHR vkDestroySurfaceKHR;
+
+		private unsafe delegate VkResult CreateImage(
+			IntPtr device,
+			VkImageCreateInfo* pCreateInfo,
+			IntPtr pAllocator,
+			out ulong image
+		);
+		private CreateImage vkCreateImage;
+
+		private unsafe delegate VkResult CreateImageView(
+			IntPtr device,
+			VkImageViewCreateInfo* pCreateInfo,
+			IntPtr pAllocator,
+			out ulong view
+		);
+		private CreateImageView vkCreateImageView;
+
+		private unsafe delegate void DestroyImageView(
+			IntPtr device,
+			ulong imageView,
+			IntPtr pAllocator
+		);
+		private DestroyImageView vkDestroyImageView;
+
+		private unsafe delegate VkResult CreateSwapchainKHR(
+			IntPtr device,
+			VkSwapchainCreateInfoKHR* pCreateInfo,
+			IntPtr pAllocator,
+			out ulong swapchain
+		);
+		private CreateSwapchainKHR vkCreateSwapchainKHR;
+
+		private delegate void DestroySwapchainKHR(
+			IntPtr device,
+			ulong swapchain,
+			IntPtr pAllocator
+		);
+		private DestroySwapchainKHR vkDestroySwapchainKHR;
+
+		private unsafe delegate VkResult GetSwapchainImagesKHR(
+			IntPtr device,
+			ulong swapchain,
+			out uint pSwapchainImageCount,
+			ulong* pSwapchainImages
+		);
+		private GetSwapchainImagesKHR vkGetSwapchainImagesKHR;
+
 		private unsafe delegate VkResult CreateDebugUtilsMessengerEXT(
 			IntPtr instance,
 			VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
@@ -1596,7 +1946,7 @@ namespace Microsoft.Xna.Framework.Graphics
 
 		private unsafe delegate VkResult DestroyDebugUtilsMessengerEXT(
 			IntPtr instance,
-			IntPtr messenger,
+			ulong messenger,
 			IntPtr pAllocator
 		);
 		private DestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT;
