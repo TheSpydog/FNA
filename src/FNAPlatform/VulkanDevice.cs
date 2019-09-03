@@ -201,6 +201,7 @@ namespace Microsoft.Xna.Framework.Graphics
 
 		#region Rasterizer State Variables
 
+		private PrimitiveType primitive = PrimitiveType.TriangleList;
 		private bool scissorTestEnable = false;
 		private CullMode cullFrontFace = CullMode.None;
 		private FillMode fillMode = FillMode.Solid;
@@ -284,6 +285,7 @@ namespace Microsoft.Xna.Framework.Graphics
 			CreateWindowSurface(presentationParameters.DeviceWindowHandle);
 			SelectPhysicalDevice();
 			CreateLogicalDevice();
+			InitializeDynamicStateCreateInfo();
 
 			// Print GPU / driver info
 			VkPhysicalDeviceProperties deviceProperties;
@@ -330,6 +332,9 @@ namespace Microsoft.Xna.Framework.Graphics
 				presentationParameters.DepthStencilFormat,
 				presentationParameters.MultiSampleCount
 			);
+
+			// FIXME: Just for testing...
+			//GetPipeline();
 		}
 
 		#endregion
@@ -516,7 +521,7 @@ namespace Microsoft.Xna.Framework.Graphics
 			if (messageSeverity == VkDebugUtilsMessageSeverityFlagsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
 			{
 				// This is serious, so throw an exception.
-				throw new Exception("Vulkan Error: " + message);
+				throw new Exception(message);
 			}
 			else if (messageSeverity == VkDebugUtilsMessageSeverityFlagsEXT.VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
 			{
@@ -875,12 +880,9 @@ namespace Microsoft.Xna.Framework.Graphics
 			{
 				return VkSampleCountFlags.VK_SAMPLE_COUNT_2_BIT;
 			}
-			else if (samples == 1)
-			{
-				return VkSampleCountFlags.VK_SAMPLE_COUNT_1_BIT;
-			}
 
-			return 0;
+			// Vulkan whines if there's ever 0 samples, so return 1.
+			return VkSampleCountFlags.VK_SAMPLE_COUNT_1_BIT;
 		}
 
 		private bool FormatSupported(
@@ -1051,12 +1053,310 @@ namespace Microsoft.Xna.Framework.Graphics
 
 		#endregion
 
+		#region Dynamic Pipeline States
+
+		private VkDynamicState[] dynamicStates =
+		{
+			VkDynamicState.VK_DYNAMIC_STATE_BLEND_CONSTANTS,
+			VkDynamicState.VK_DYNAMIC_STATE_DEPTH_BIAS,
+			VkDynamicState.VK_DYNAMIC_STATE_DEPTH_BOUNDS,
+			VkDynamicState.VK_DYNAMIC_STATE_SAMPLE_LOCATIONS_EXT,
+			VkDynamicState.VK_DYNAMIC_STATE_SCISSOR,
+			VkDynamicState.VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK,
+			VkDynamicState.VK_DYNAMIC_STATE_STENCIL_REFERENCE,
+			VkDynamicState.VK_DYNAMIC_STATE_STENCIL_WRITE_MASK,
+			VkDynamicState.VK_DYNAMIC_STATE_VIEWPORT
+		};
+		private VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo;
+
+		private unsafe void InitializeDynamicStateCreateInfo()
+		{
+			dynamicStateCreateInfo = new VkPipelineDynamicStateCreateInfo
+			{
+				sType = VkStructureType.VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+				dynamicStateCount = (uint) dynamicStates.Length
+			};
+			fixed (VkDynamicState* statesPtr = dynamicStates)
+			{
+				dynamicStateCreateInfo.pDynamicStates = statesPtr;
+			}
+		}
+
+		#endregion
+
 		#region Graphics Pipeline
 
-		private ulong GetPipeline()
+		private struct PSO
 		{
-			// FIXME: TODO
-			return 0;
+			public ulong Pipeline;
+			public ulong Layout;
+		}
+
+		// FIXME: Add PipelineProperties struct
+		// FIXME: Add <PipelineProperties, PSO> pipeline cache
+
+		private unsafe PSO GetPipeline()
+		{
+			// TODO: If pipeline is already cached, return pipeline
+
+			// Create a new graphics pipeline
+			VkGraphicsPipelineCreateInfo pipeline = new VkGraphicsPipelineCreateInfo();
+			pipeline.sType = VkStructureType.VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+			pipeline.pNext = IntPtr.Zero;
+			pipeline.flags = 0;
+
+			/* Throughout this method we pin a bunch of instance
+			 * variables and local arrays so their pointers are
+			 * guaranteed to be valid when we create the pipeline.
+			 */
+
+			// Define the shader stages
+			VkPipelineShaderStageCreateInfo[] shaderStages =
+			{
+				// Vertex
+				new VkPipelineShaderStageCreateInfo
+				{
+					sType = VkStructureType.VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+					pNext = IntPtr.Zero,
+					flags = 0,
+					stage = VkShaderStageFlags.VK_SHADER_STAGE_VERTEX_BIT,
+
+					// FIXME: Fill this in from MojoShader
+					module = 0,
+					pName = IntPtr.Zero,
+					pSpecializationInfo = null
+				},
+
+				// Fragment
+				new VkPipelineShaderStageCreateInfo
+				{
+					sType = VkStructureType.VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+					pNext = IntPtr.Zero,
+					flags = 0,
+					stage = VkShaderStageFlags.VK_SHADER_STAGE_FRAGMENT_BIT,
+
+					// FIXME: Fill this in from MojoShader
+					module = 0,
+					pName = IntPtr.Zero,
+					pSpecializationInfo = null
+				}
+			};
+			GCHandle shaderStagesPin = GCHandle.Alloc(shaderStages, GCHandleType.Pinned);
+			pipeline.stageCount = (uint) shaderStages.Length;
+			pipeline.pStages = (VkPipelineShaderStageCreateInfo*) shaderStagesPin.AddrOfPinnedObject();
+
+			// Describe the vertex input (FIXME: Fill these in from MojoShader)
+			VkVertexInputBindingDescription[] bindings = new VkVertexInputBindingDescription[0];
+			VkVertexInputAttributeDescription[] attributes = new VkVertexInputAttributeDescription[0];
+			GCHandle bindingsPin = GCHandle.Alloc(bindings, GCHandleType.Pinned);
+			GCHandle attributesPin = GCHandle.Alloc(attributes, GCHandleType.Pinned);
+
+			VkPipelineVertexInputStateCreateInfo vertexInput = new VkPipelineVertexInputStateCreateInfo
+			{
+				sType = VkStructureType.VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+				pNext = IntPtr.Zero,
+				flags = 0,
+				vertexBindingDescriptionCount = (uint) bindings.Length,
+				pVertexBindingDescriptions = (VkVertexInputBindingDescription*) bindingsPin.AddrOfPinnedObject(),
+				vertexAttributeDescriptionCount = (uint) attributes.Length,
+				pVertexAttributeDescriptions = (VkVertexInputAttributeDescription*) attributesPin.AddrOfPinnedObject()
+			};
+			pipeline.pVertexInputState = &vertexInput;
+
+			// Define the input assembly state
+			VkPipelineInputAssemblyStateCreateInfo inputAssembly = new VkPipelineInputAssemblyStateCreateInfo
+			{
+				sType = VkStructureType.VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+				pNext = IntPtr.Zero,
+				flags = 0,
+				topology = XNAToVK.PrimitiveType[(int) primitive],
+				primitiveRestartEnable = 0
+			};
+			pipeline.pInputAssemblyState = &inputAssembly;
+
+			// FIXME: Are these even needed...?
+			pipeline.pTessellationState = null;
+			pipeline.pViewportState = null;
+
+			// Describe the rasterization state
+			VkPipelineRasterizationStateCreateInfo rasterization = new VkPipelineRasterizationStateCreateInfo
+			{
+				sType = VkStructureType.VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+				pNext = IntPtr.Zero,
+				flags = 0,
+				depthClampEnable = 1, // FIXME: Need to enable this device feature
+				rasterizerDiscardEnable = 1, // FIXME: Is this right?
+				polygonMode = XNAToVK.FillMode[(int) fillMode], // FIXME: Need to enable device feature
+				cullMode = XNAToVK.CullMode[(int) cullFrontFace],
+				frontFace = XNAToVK.FrontFace[(int) cullFrontFace],
+				depthBiasEnable = 1,
+				depthBiasConstantFactor = depthBias,
+				depthBiasClamp = depthRangeMax, // FIXME: Is this right?
+				depthBiasSlopeFactor = slopeScaleDepthBias,
+				lineWidth = 1
+			};
+			pipeline.pRasterizationState = &rasterization;
+
+			// Describe multisample state
+			GCHandle multisampleMaskPin = GCHandle.Alloc(multisampleMask, GCHandleType.Pinned);
+			VkPipelineMultisampleStateCreateInfo multisample = new VkPipelineMultisampleStateCreateInfo
+			{
+				sType = VkStructureType.VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+				pNext = IntPtr.Zero,
+				flags = 0,
+				rasterizationSamples = GetSampleCountFlags(1), // FIXME: What should this be?
+				sampleShadingEnable = 0, // FIXME: What is this?
+				minSampleShading = 1.0f, // FIXME: What is this?
+				pSampleMask = (uint*) multisampleMaskPin.AddrOfPinnedObject(),
+				alphaToCoverageEnable = 0,
+				alphaToOneEnable = 0
+			};
+			pipeline.pMultisampleState = &multisample;
+
+			// Describe depth-stencil state
+			VkStencilOpState frontStencilState = new VkStencilOpState
+			{
+				failOp = XNAToVK.StencilOperation[(int) stencilFail],
+				passOp = XNAToVK.StencilOperation[(int) stencilPass],
+				depthFailOp = XNAToVK.StencilOperation[(int) stencilZFail],
+				compareOp = XNAToVK.CompareFunction[(int) stencilFunc],
+				compareMask = (uint) stencilMask,
+				writeMask = (uint) stencilWriteMask,
+				reference = (uint) stencilRef
+			};
+			VkStencilOpState backStencilState = new VkStencilOpState
+			{
+				failOp = (
+					(separateStencilEnable)
+					? XNAToVK.StencilOperation[(int) ccwStencilFail]
+					: frontStencilState.failOp
+				),
+				passOp = (
+					(separateStencilEnable)
+					? XNAToVK.StencilOperation[(int) ccwStencilPass]
+					: frontStencilState.passOp
+				),
+				depthFailOp = (
+					(separateStencilEnable)
+					? XNAToVK.StencilOperation[(int) ccwStencilZFail]
+					: frontStencilState.depthFailOp
+				),
+				compareOp = (
+					(separateStencilEnable)
+					? XNAToVK.CompareFunction[(int) ccwStencilFunc]
+					: frontStencilState.compareOp
+				),
+				compareMask = (uint) stencilMask,
+				writeMask = (uint) stencilWriteMask,
+				reference = (uint) stencilRef
+			};
+			VkPipelineDepthStencilStateCreateInfo depthStencil = new VkPipelineDepthStencilStateCreateInfo
+			{
+				sType = VkStructureType.VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+				pNext = IntPtr.Zero,
+				flags = 0,
+				depthTestEnable = (zEnable) ? 1u : 0u,
+				depthWriteEnable = (zWriteEnable) ? 1u : 0u,
+				depthCompareOp = XNAToVK.CompareFunction[(int) depthFunc],
+				depthBoundsTestEnable = 1,
+				stencilTestEnable = (stencilEnable) ? 1u : 0u,
+				front = frontStencilState,
+				back = backStencilState,
+				minDepthBounds = depthRangeMin,
+				maxDepthBounds = depthRangeMax
+			};
+			pipeline.pDepthStencilState = &depthStencil;
+
+			// Describe color blend state
+			Vector4 normalizedBlendConstants = new Vector4(
+				blendColor.R / 255f,
+				blendColor.G / 255f,
+				blendColor.B / 255f,
+				blendColor.A / 255f
+			);
+			VkPipelineColorBlendStateCreateInfo blendState = new VkPipelineColorBlendStateCreateInfo
+			{
+				sType = VkStructureType.VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+				pNext = IntPtr.Zero,
+				flags = 0,
+				logicOpEnable = 0,
+				logicOp = 0,
+				attachmentCount = 0, // FIXME: What should this be?
+				pAttachments = null, // FIXME: What should this be?
+				blendConstants_r = normalizedBlendConstants.X,
+				blendConstants_g = normalizedBlendConstants.Y,
+				blendConstants_b = normalizedBlendConstants.Z,
+				blendConstants_a = normalizedBlendConstants.W,
+			};
+			pipeline.pColorBlendState = null;
+
+			// Pin and reuse the pre-initialized dynamic state
+			GCHandle dynamicStatesPin = GCHandle.Alloc(dynamicStateCreateInfo, GCHandleType.Pinned);
+			pipeline.pDynamicState = (VkPipelineDynamicStateCreateInfo*) dynamicStatesPin.AddrOfPinnedObject();
+
+			// Create pipeline layout
+			VkPipelineLayoutCreateInfo layoutCreateInfo = new VkPipelineLayoutCreateInfo
+			{
+				sType = VkStructureType.VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+				pNext = IntPtr.Zero,
+				flags = 0,
+
+				// FIXME: This is where shader uniform descriptors will go
+				setLayoutCount = 0,
+				pSetLayouts = null,
+
+				pushConstantRangeCount = 0,
+				pPushConstantRanges = null
+			};
+			VkResult res = vkCreatePipelineLayout(
+				Device,
+				&layoutCreateInfo,
+				IntPtr.Zero,
+				out pipeline.layout
+			);
+			if (res != VkResult.VK_SUCCESS)
+			{
+				throw new Exception("Could not create pipeline layout! Error: " + res);
+			}
+
+			// FIXME: Specify compatible render pass
+			pipeline.renderPass = 0;
+
+			// FIXME: Do we always want the first subpass?
+			pipeline.subpass = 0;
+
+			// Don't bother with deriving from another pipeline
+			pipeline.basePipelineHandle = 0;
+			pipeline.basePipelineIndex = 0;
+
+			// Bake the pipeline
+			ulong bakedPipeline;
+			res = vkCreateGraphicsPipelines(
+				Device,
+				0, // FIXME: Do we want a VkPipelineCache?
+				1,
+				&pipeline,
+				IntPtr.Zero,
+				&bakedPipeline
+			);
+			if (res != VkResult.VK_SUCCESS)
+			{
+				throw new Exception("Could not create graphics pipeline! Error: " + res);
+			}
+
+			// Clean up the pinned objects
+			attributesPin.Free();
+			bindingsPin.Free();
+			dynamicStatesPin.Free();
+			multisampleMaskPin.Free();
+			shaderStagesPin.Free();
+
+			// We're finished!
+			return new PSO
+			{
+				Pipeline = bakedPipeline,
+				Layout = pipeline.layout
+			};
 		}
 
 		#endregion
@@ -1093,7 +1393,7 @@ namespace Microsoft.Xna.Framework.Graphics
 			if (scissorRect != scissorRectangle)
 			{
 				scissorRectangle = scissorRect;
-				// FIXME: vkCmdSetScissor(CommandBuffer, 0, 1, <ptr to rect>
+				// FIXME: vkCmdSetScissor(CommandBuffer, 0, 1, <ptr to rect>)
 			}
 		}
 
@@ -1129,23 +1429,6 @@ namespace Microsoft.Xna.Framework.Graphics
 
 		private class VulkanBackbuffer : IGLBackbuffer
 		{
-			// FIXME: Does this need to be public?
-			public ulong SwapchainHandle
-			{
-				get
-				{
-					return swapchainHandle;
-				}
-			}
-
-			public ulong[] SwapchainImageViews
-			{
-				get
-				{
-					return swapchainImageViews;
-				}
-			}
-
 			public int Width
 			{
 				get;
@@ -1172,8 +1455,13 @@ namespace Microsoft.Xna.Framework.Graphics
 
 			private VulkanDevice vkDevice;
 			private VkPresentModeKHR[] supportedPresentModes;
-			private ulong swapchainHandle;
+			private uint imageCount;
+
+			private ulong swapchain;
 			private ulong[] swapchainImageViews;
+
+			private ulong[] depthStencilImages;
+			private ulong[] depthStencilImageViews;
 
 			public VulkanBackbuffer(
 				VulkanDevice device,
@@ -1231,8 +1519,6 @@ namespace Microsoft.Xna.Framework.Graphics
 				/* In Vulkan, resetting the backbuffer framebuffer means
 				 * creating a new swapchain and a new depth-stencil buffer
 				 * with updated image properties (size/format/etc.).
-				 * 
-				 * FIXME: Add depth-stencil buffer
 				 */
 
 				// FIXME: Need to handle detatching/freeing old resources
@@ -1316,7 +1602,7 @@ namespace Microsoft.Xna.Framework.Graphics
 					};
 					fixed (uint* indicesPtr = indices)
 					{
-						// FIXME: This doesn't seem right...
+						// FIXME: This doesn't seem right... Should be pinned
 						createInfo.pQueueFamilyIndices = indicesPtr;
 					}
 				}
@@ -1335,7 +1621,7 @@ namespace Microsoft.Xna.Framework.Graphics
 
 				// Check if the requested present interval is supported
 				PresentInterval presentInterval = presentationParameters.PresentationInterval;
-				VkPresentModeKHR presentMode = XNAToVK.PresentMode[(int)presentInterval];
+				VkPresentModeKHR presentMode = XNAToVK.PresentInterval[(int) presentInterval];
 				if (PresentModeSupported(presentMode))
 				{
 					createInfo.presentMode = presentMode;
@@ -1350,15 +1636,15 @@ namespace Microsoft.Xna.Framework.Graphics
 				// FIXME: This will interfere with readback
 				createInfo.clipped = 1;
 
-				// Out with the old...
-				createInfo.oldSwapchain = swapchainHandle;
+				// FIXME: I suspect there's more to it than this...
+				createInfo.oldSwapchain = swapchain;
 
-				// ...and in with the new!
+				// Create the new swapchain!
 				VkResult res = vkDevice.vkCreateSwapchainKHR(
 					vkDevice.Device,
 					&createInfo,
 					IntPtr.Zero,
-					out swapchainHandle
+					out swapchain
 				);
 				if (res != VkResult.VK_SUCCESS)
 				{
@@ -1367,37 +1653,43 @@ namespace Microsoft.Xna.Framework.Graphics
 
 				// Store the images created by the new swapchain
 				CreateImageViews();
+
+				// Create depth buffer image views, if needed
+				if (DepthFormat != DepthFormat.None)
+				{
+					CreateDepthStencilImageViews();
+				}
 			}
 
 			private unsafe void CreateImageViews()
 			{
-				// Create an array of swapchain images
-				VkResult res;
-				uint numSwapchainImages;
+				// Create an array to hold the swapchain images
 				vkDevice.vkGetSwapchainImagesKHR(
 					vkDevice.Device,
-					SwapchainHandle,
-					out numSwapchainImages,
+					swapchain,
+					out imageCount,
 					null
 				);
-				ulong[] swapchainImages = new ulong[numSwapchainImages];
+				ulong[] swapchainImages = new ulong[imageCount];
 				fixed (ulong* swapchainImagesPtr = swapchainImages)
 				{
-					res = vkDevice.vkGetSwapchainImagesKHR(
+					VkResult res = vkDevice.vkGetSwapchainImagesKHR(
 						vkDevice.Device,
-						SwapchainHandle,
-						out numSwapchainImages,
+						swapchain,
+						out imageCount,
 						swapchainImagesPtr
 					);
-				}
-				if (res != VkResult.VK_SUCCESS)
-				{
-					throw new Exception("Could not retrieve swapchain images! Error: " + res);
+					if (res != VkResult.VK_SUCCESS)
+					{
+						throw new Exception(
+							"Could not retrieve swapchain images! Error: " + res
+						);
+					}
 				}
 
 				// Create image views to access the images
-				swapchainImageViews = new ulong[numSwapchainImages];
-				for (int i = 0; i < numSwapchainImages; i += 1)
+				swapchainImageViews = new ulong[imageCount];
+				for (int i = 0; i < imageCount; i += 1)
 				{
 					VkImageViewCreateInfo createInfo = new VkImageViewCreateInfo
 					{
@@ -1418,7 +1710,7 @@ namespace Microsoft.Xna.Framework.Graphics
 						}
 					};
 
-					res = vkDevice.vkCreateImageView(
+					VkResult res = vkDevice.vkCreateImageView(
 						vkDevice.Device,
 						&createInfo,
 						IntPtr.Zero,
@@ -1431,10 +1723,127 @@ namespace Microsoft.Xna.Framework.Graphics
 				}
 			}
 
+			private unsafe void CreateDepthStencilImageViews()
+			{
+				// Initialize an array of images
+				depthStencilImages = new ulong[imageCount];
+
+				// Get queue indices
+				uint[] queueIndices = new uint[]
+				{
+					vkDevice.graphicsQueueFamilyIndex,
+					vkDevice.presentationQueueFamilyIndex
+				};
+				GCHandle pinnedQueueIndices = GCHandle.Alloc(queueIndices, GCHandleType.Pinned);
+				bool sameQueue = vkDevice.presentationQueueFamilyIndex == vkDevice.graphicsQueueFamilyIndex;
+
+				// Generate depth-stencil buffer image create info
+				VkImageCreateInfo imageCreateInfo = new VkImageCreateInfo
+				{
+					sType = VkStructureType.VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+					pNext = IntPtr.Zero,
+					flags = 0,
+					imageType = VkImageType.VK_IMAGE_TYPE_2D,
+					format = XNAToVK.DepthFormat[(int) DepthFormat],
+					extent = new VkExtent3D(
+						(uint) Width,
+						(uint) Height,
+						1
+					),
+					mipLevels = 1,
+					arrayLayers = 1,
+					samples = vkDevice.GetSampleCountFlags(MultiSampleCount), // FIXME: Is this right?
+					tiling = VkImageTiling.VK_IMAGE_TILING_OPTIMAL,
+					usage = (
+						VkImageUsageFlags.VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT |
+						VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_DST_BIT
+					),
+					sharingMode = (
+						(sameQueue)
+						? VkSharingMode.VK_SHARING_MODE_EXCLUSIVE
+						: VkSharingMode.VK_SHARING_MODE_CONCURRENT
+					),
+					queueFamilyIndexCount = (sameQueue) ? 0u : 2u,
+					pQueueFamilyIndices = (
+						(sameQueue)
+						? null
+						: (uint*) pinnedQueueIndices.AddrOfPinnedObject()
+					),
+					initialLayout = VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED
+				};
+
+				// Make the images!
+				for (int i = 0; i < imageCount; i += 1)
+				{
+					VkResult res = vkDevice.vkCreateImage(
+						vkDevice.Device,
+						&imageCreateInfo,
+						IntPtr.Zero,
+						out depthStencilImages[i]
+					);
+					if (res != VkResult.VK_SUCCESS)
+					{
+						throw new Exception(
+							"Could not create depth-stencil image! Error: " + res
+						);
+					}
+				}
+
+				// Free the pinned queue indices array
+				pinnedQueueIndices.Free();
+
+				// Bind memory for each of the images
+				// FIXME: TODO
+
+				// Determine which aspect flags we want for the image views
+				VkImageAspectFlags aspectFlags = VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT;
+				if (DepthFormat == DepthFormat.Depth24Stencil8)
+				{
+					aspectFlags |= VkImageAspectFlags.VK_IMAGE_ASPECT_STENCIL_BIT;
+				}
+
+				// Now we make the image views
+				depthStencilImageViews = new ulong[imageCount];
+				for (int i = 0; i < imageCount; i += 1)
+				{
+					VkImageViewCreateInfo imageViewCreateInfo = new VkImageViewCreateInfo
+					{
+						sType = VkStructureType.VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+						pNext = IntPtr.Zero,
+						flags = 0,
+						image = depthStencilImages[i],
+						viewType = VkImageViewType.VK_IMAGE_VIEW_TYPE_2D,
+						format = XNAToVK.DepthFormat[(int) DepthFormat],
+						components = VkComponentMapping.Identity,
+						subresourceRange = new VkImageSubresourceRange
+						{
+							aspectMask = aspectFlags,
+							baseMipLevel = 0,
+							levelCount = 1,
+							baseArrayLayer = 0,
+							layerCount = 1
+						}
+					};
+
+					VkResult res = vkDevice.vkCreateImageView(
+						vkDevice.Device,
+						&imageViewCreateInfo,
+						IntPtr.Zero,
+						out depthStencilImageViews[i]
+					);
+					if (res != VkResult.VK_SUCCESS)
+					{
+						throw new Exception(
+							"Failed to create depth-stencil image view! Error: " + res
+						);
+					}
+				}
+			}
+
 			public void Dispose()
 			{
-				// Destroy all image views
-				foreach (ulong imageView in SwapchainImageViews)
+				// Destroy all swapchain image views
+				foreach (ulong imageView in swapchainImageViews)
 				{
 					vkDevice.vkDestroyImageView(
 						vkDevice.Device,
@@ -1444,10 +1853,35 @@ namespace Microsoft.Xna.Framework.Graphics
 				}
 				swapchainImageViews = null;
 
+				/* We don't need to destroy the swapchain
+				 * images since we don't own them.
+				 */
+
+				// Destroy depth-stencil stuff
+				foreach (ulong imageView in depthStencilImageViews)
+				{
+					vkDevice.vkDestroyImageView(
+						vkDevice.Device,
+						imageView,
+						IntPtr.Zero
+					);
+				}
+				depthStencilImageViews = null;
+
+				foreach (ulong image in depthStencilImages)
+				{
+					vkDevice.vkDestroyImage(
+						vkDevice.Device,
+						image,
+						IntPtr.Zero
+					);
+				}
+				depthStencilImages = null;
+
 				// Destroy the swapchain itself
 				vkDevice.vkDestroySwapchainKHR(
 					vkDevice.Device,
-					SwapchainHandle,
+					swapchain,
 					IntPtr.Zero
 				);
 			}
@@ -1703,12 +2137,98 @@ namespace Microsoft.Xna.Framework.Graphics
 
 		private class XNAToVK
 		{
-			public static VkPresentModeKHR[] PresentMode =
+			public static VkFormat[] SurfaceFormat =
+			{
+				VkFormat.VK_FORMAT_R8G8B8A8_UINT,		// SurfaceFormat.Color
+				VkFormat.VK_FORMAT_R5G6B5_UNORM_PACK16,		// SurfaceFormat.Bgr565
+				VkFormat.VK_FORMAT_R5G5B5A1_UNORM_PACK16,	// SurfaceFormat.Bgra5551
+				VkFormat.VK_FORMAT_B4G4R4A4_UNORM_PACK16,	// SurfaceFormat.Bgra4444
+				VkFormat.VK_FORMAT_BC1_RGBA_UNORM_BLOCK,	// SurfaceFormat.Dxt1
+				VkFormat.VK_FORMAT_BC2_UNORM_BLOCK,		// SurfaceFormat.Dxt3
+				VkFormat.VK_FORMAT_BC3_UNORM_BLOCK,		// SurfaceFormat.Dxt5
+				VkFormat.VK_FORMAT_R8G8_SNORM,			// SurfaceFormat.NormalizedByte2
+				VkFormat.VK_FORMAT_R4G4B4A4_UNORM_PACK16,	// SurfaceFormat.NormalizedByte4
+				VkFormat.VK_FORMAT_A2R10G10B10_UINT_PACK32,	// SurfaceFormat.Rgba1010102
+				VkFormat.VK_FORMAT_R16G16_UINT,			// SurfaceFormat.Rg32
+				VkFormat.VK_FORMAT_R16G16B16A16_UINT,		// SurfaceFormat.Rgba64
+				VkFormat.VK_FORMAT_R8_UNORM,			// SurfaceFormat.Alpha8
+				VkFormat.VK_FORMAT_R32_SFLOAT,			// SurfaceFormat.Single
+				VkFormat.VK_FORMAT_R32G32_SFLOAT,		// SurfaceFormat.Vector2
+				VkFormat.VK_FORMAT_R32G32B32A32_SFLOAT,		// SurfaceFormat.Vector4
+				VkFormat.VK_FORMAT_R16_SFLOAT,			// SurfaceFormat.HalfSingle
+				VkFormat.VK_FORMAT_R16G16_SFLOAT,		// SurfaceFormat.HalfVector2
+				VkFormat.VK_FORMAT_R16G16B16A16_SFLOAT,		// SurfaceFormat.HalfVector4
+				VkFormat.VK_FORMAT_R16G16B16A16_SFLOAT,		// SurfaceFormat.HdrBlendable
+				VkFormat.VK_FORMAT_R8G8B8A8_UINT		// SurfaceFormat.ColorBgraEXT
+			};
+
+			public static VkFormat[] DepthFormat =
+			{
+				VkFormat.VK_FORMAT_UNDEFINED,		// DepthFormat.None
+				VkFormat.VK_FORMAT_D16_UNORM,		// DepthFormat.Depth16
+				VkFormat.VK_FORMAT_X8_D24_UNORM_PACK32,	// DepthFormat.Depth24 (FIXME: Is this right?)
+				VkFormat.VK_FORMAT_D24_UNORM_S8_UINT	// DepthFormat.Depth24Stencil8
+			};
+
+			public static VkPresentModeKHR[] PresentInterval =
 			{
 				VkPresentModeKHR.VK_PRESENT_MODE_FIFO_KHR,	// PresentInterval.Default
 				VkPresentModeKHR.VK_PRESENT_MODE_FIFO_KHR,	// PresentInterval.One
 				VkPresentModeKHR.VK_PRESENT_MODE_FIFO_KHR,	// PresentInterval.Two
 				VkPresentModeKHR.VK_PRESENT_MODE_IMMEDIATE_KHR	// PresentInterval.Immediate
+			};
+
+			public static VkPrimitiveTopology[] PrimitiveType =
+			{
+				VkPrimitiveTopology.VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,	// PrimitiveType.TriangleList
+				VkPrimitiveTopology.VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP,	// PrimitiveType.TriangleStrip
+				VkPrimitiveTopology.VK_PRIMITIVE_TOPOLOGY_LINE_LIST,		// PrimitiveType.LineList
+				VkPrimitiveTopology.VK_PRIMITIVE_TOPOLOGY_LINE_STRIP,		// PrimitiveType.LineStrip
+				VkPrimitiveTopology.VK_PRIMITIVE_TOPOLOGY_POINT_LIST		// PrimitiveType.PointListEXT
+			};
+
+			public static VkPolygonMode[] FillMode =
+			{
+				VkPolygonMode.VK_POLYGON_MODE_FILL,	// FillMode.Solid
+				VkPolygonMode.VK_POLYGON_MODE_LINE	// FillMode.Wireframe
+			};
+
+			public static VkCullModeFlags[] CullMode =
+			{
+				VkCullModeFlags.VK_CULL_MODE_NONE,	// CullMode.None
+				VkCullModeFlags.VK_CULL_MODE_FRONT_BIT,	// CullMode.CullClockwiseFace
+				VkCullModeFlags.VK_CULL_MODE_FRONT_BIT	// CullMode.CullCounterClockwiseFace
+			};
+
+			public static VkFrontFace[] FrontFace =
+			{
+				VkFrontFace.VK_FRONT_FACE_CLOCKWISE,		// CullMode.None
+				VkFrontFace.VK_FRONT_FACE_CLOCKWISE,		// CullMode.CullClockwiseFace
+				VkFrontFace.VK_FRONT_FACE_COUNTER_CLOCKWISE	// CullMode.CullCounterClockwiseFace
+			};
+
+			public static VkCompareOp[] CompareFunction =
+			{
+				VkCompareOp.VK_COMPARE_OP_ALWAYS,	// CompareFunction.Always
+				VkCompareOp.VK_COMPARE_OP_NEVER,	// CompareFunction.Never
+				VkCompareOp.VK_COMPARE_OP_LESS,		// CompareFunction.Less
+				VkCompareOp.VK_COMPARE_OP_LESS_OR_EQUAL,// CompareFunction.LessOrEqual
+				VkCompareOp.VK_COMPARE_OP_EQUAL,	// CompareFunction.Equal
+				VkCompareOp.VK_COMPARE_OP_GREATER_OR_EQUAL, // CompareFunction.GreaterOrEqual
+				VkCompareOp.VK_COMPARE_OP_GREATER,	// CompareFunction.Greater
+				VkCompareOp.VK_COMPARE_OP_NOT_EQUAL	// CompareFunction.NotEqual
+			};
+
+			public static VkStencilOp[] StencilOperation =
+			{
+				VkStencilOp.VK_STENCIL_OP_KEEP,			// StencilOperation.Keep
+				VkStencilOp.VK_STENCIL_OP_ZERO,			// StencilOperation.Zero
+				VkStencilOp.VK_STENCIL_OP_REPLACE,		// StencilOperation.Replace
+				VkStencilOp.VK_STENCIL_OP_INCREMENT_AND_WRAP,	// StencilOperation.Increment
+				VkStencilOp.VK_STENCIL_OP_DECREMENT_AND_WRAP,	// StencilOperation.Decrement
+				VkStencilOp.VK_STENCIL_OP_INCREMENT_AND_CLAMP,	// StencilOperation.IncrementSaturation
+				VkStencilOp.VK_STENCIL_OP_DECREMENT_AND_CLAMP,	// StencilOperation.DecrementSaturation
+				VkStencilOp.VK_STENCIL_OP_INVERT		// StencilOperation.Invert
 			};
 		}
 

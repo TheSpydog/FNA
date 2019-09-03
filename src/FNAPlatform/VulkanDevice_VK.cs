@@ -1981,6 +1981,24 @@ namespace Microsoft.Xna.Framework.Graphics
 			public int basePipelineIndex;
 		}
 
+		private struct VkPushConstantRange
+		{
+			public VkShaderStageFlags stageFlags;
+			public uint offset;
+			public uint size;
+		}
+
+		private unsafe struct VkPipelineLayoutCreateInfo
+		{
+			public VkStructureType sType;
+			public IntPtr pNext;
+			public uint flags;
+			public uint setLayoutCount;
+			public ulong* pSetLayouts;
+			public uint pushConstantRangeCount;
+			public VkPushConstantRange* pPushConstantRanges;
+		}
+
 		#endregion
 
 		#region UTF8 Marshaling
@@ -2151,12 +2169,40 @@ namespace Microsoft.Xna.Framework.Graphics
 				"vkGetDeviceQueue",
 				typeof(GetDeviceQueue)
 			);
-			vkDestroySurfaceKHR = (DestroySurfaceKHR) GetProcAddress(
-				"vkDestroySurfaceKHR",
-				typeof(DestroySurfaceKHR)
+			vkGetPhysicalDeviceFormatProperties = (GetPhysicalDeviceFormatProperties)GetProcAddress(
+				"vkGetPhysicalDeviceFormatProperties",
+				typeof(GetPhysicalDeviceFormatProperties)
+			);
+			vkCreateImage = (CreateImage)GetProcAddress(
+				"vkCreateImage",
+				typeof(CreateImage)
+			);
+			vkDestroyImage = (DestroyImage)GetProcAddress(
+				"vkDestroyImage",
+				typeof(DestroyImage)
+			);
+			vkCreateImageView = (CreateImageView)GetProcAddress(
+				"vkCreateImageView",
+				typeof(CreateImageView)
+			);
+			vkDestroyImageView = (DestroyImageView)GetProcAddress(
+				"vkDestroyImageView",
+				typeof(DestroyImageView)
+			);
+			vkCreateGraphicsPipelines = (CreateGraphicsPipelines)GetProcAddress(
+				"vkCreateGraphicsPipelines",
+				typeof(CreateGraphicsPipelines)
+			);
+			vkCreatePipelineLayout = (CreatePipelineLayout)GetProcAddress(
+				"vkCreatePipelineLayout",
+				typeof(CreatePipelineLayout)
 			);
 
 			// FIXME: Need to check for extension?
+			vkDestroySurfaceKHR = (DestroySurfaceKHR)GetProcAddress(
+				"vkDestroySurfaceKHR",
+				typeof(DestroySurfaceKHR)
+			);
 			vkGetPhysicalDeviceSurfaceSupportKHR = (GetPhysicalDeviceSurfaceSupportKHR) GetProcAddress(
 				"vkGetPhysicalDeviceSurfaceSupportKHR",
 				typeof(GetPhysicalDeviceSurfaceSupportKHR)
@@ -2178,24 +2224,7 @@ namespace Microsoft.Xna.Framework.Graphics
 				typeof(GetPhysicalDeviceSurfacePresentModesKHR)
 			);
 
-			vkGetPhysicalDeviceFormatProperties = (GetPhysicalDeviceFormatProperties) GetProcAddress(
-				"vkGetPhysicalDeviceFormatProperties",
-				typeof(GetPhysicalDeviceFormatProperties)
-			);
-			vkCreateImage = (CreateImage) GetProcAddress(
-				"vkCreateImage",
-				typeof(CreateImage)
-			);
-			vkCreateImageView = (CreateImageView) GetProcAddress(
-				"vkCreateImageView",
-				typeof(CreateImageView)
-			);
-			vkDestroyImageView = (DestroyImageView) GetProcAddress(
-				"vkDestroyImageView",
-				typeof(DestroyImageView)
-			);
-
-			// FIXME: Need to check for extension here?
+			// FIXME: Need to check for extension?
 			vkCreateSwapchainKHR = (CreateSwapchainKHR) GetProcAddress(
 				"vkCreateSwapchainKHR",
 				typeof(CreateSwapchainKHR)
@@ -2364,6 +2393,13 @@ namespace Microsoft.Xna.Framework.Graphics
 		);
 		private CreateImage vkCreateImage;
 
+		private unsafe delegate VkResult DestroyImage(
+			IntPtr device,
+			ulong image,
+			IntPtr pAllocator
+		);
+		private DestroyImage vkDestroyImage;
+
 		private unsafe delegate VkResult CreateImageView(
 			IntPtr device,
 			VkImageViewCreateInfo* pCreateInfo,
@@ -2401,6 +2437,24 @@ namespace Microsoft.Xna.Framework.Graphics
 			ulong* pSwapchainImages
 		);
 		private GetSwapchainImagesKHR vkGetSwapchainImagesKHR;
+
+		private unsafe delegate VkResult CreateGraphicsPipelines(
+			IntPtr device,
+			ulong pipelineCache,
+			uint createInfoCount,
+			VkGraphicsPipelineCreateInfo* pCreateInfos,
+			IntPtr pAllocator,
+			ulong* pPipelines
+		);
+		private CreateGraphicsPipelines vkCreateGraphicsPipelines;
+
+		private unsafe delegate VkResult CreatePipelineLayout(
+			IntPtr device,
+			VkPipelineLayoutCreateInfo* pCreateInfo,
+			IntPtr pAllocator,
+			out ulong pipelineLayout
+		);
+		private CreatePipelineLayout vkCreatePipelineLayout;
 
 		private unsafe delegate VkResult CreateDebugUtilsMessengerEXT(
 			IntPtr instance,
