@@ -346,6 +346,10 @@ namespace Microsoft.Xna.Framework.Graphics
 		{
 			(Backbuffer as VulkanBackbuffer).Dispose();
 
+			VMA.vmaDestroyAllocator(
+				Allocator
+			);
+
 			vkDestroyDevice(
 				Device,
 				IntPtr.Zero
@@ -881,7 +885,7 @@ namespace Microsoft.Xna.Framework.Graphics
 			ulong memory,
 			ulong size
 		) {
-			Console.WriteLine(
+			FNALoggerEXT.LogInfo(
 				"Allocated memory type " + memoryType +
 				" at address " + memory +
 				" of size " + size
@@ -894,7 +898,7 @@ namespace Microsoft.Xna.Framework.Graphics
 			ulong memory,
 			ulong size
 		) {
-			Console.WriteLine(
+			FNALoggerEXT.LogInfo(
 				"Freed memory type " + memoryType +
 				" at address " + memory +
 				" of size " + size
@@ -1542,20 +1546,151 @@ namespace Microsoft.Xna.Framework.Graphics
 
 		#endregion
 
-		#region Image Helper Struct
+		#region Vulkan Texture Container Class
 
-		private struct Image
+		private class VKTexture : IGLTexture
 		{
-			public ulong Handle;
-			public IntPtr Allocation;
-
-			public void Dispose(IntPtr allocator)
+			public ulong Handle
 			{
+				get;
+				private set;
+			}
+
+			public ulong ViewHandle
+			{
+				get;
+				private set;
+			}
+
+			public IntPtr Allocation
+			{
+				get;
+				private set;
+			}
+
+			public bool HasMipmaps
+			{
+				get;
+				private set;
+			}
+
+			private VulkanDevice vkDevice;
+
+			public unsafe VKTexture(
+				VulkanDevice vkDevice,
+				VkFormat format,
+				int width,
+				int height,
+				int levelCount,
+				int sampleCount,
+				VkImageUsageFlags usage,
+				VkImageAspectFlags aspect
+			) {
+				this.vkDevice = vkDevice;
+
+				// Create and allocate the image
+				VkImageCreateInfo imgCreateInfo = new VkImageCreateInfo
+				{
+					sType = VkStructureType.VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+					pNext = IntPtr.Zero,
+					flags = 0,
+					imageType = VkImageType.VK_IMAGE_TYPE_2D,
+					format = format,
+					extent = new VkExtent3D(
+						(uint) width,
+						(uint) height,
+						1
+					),
+					mipLevels = (uint) levelCount,
+					arrayLayers = 1,
+					samples = vkDevice.GetSampleCountFlags(sampleCount),
+					tiling = VkImageTiling.VK_IMAGE_TILING_OPTIMAL,
+					usage = usage,
+					sharingMode = VkSharingMode.VK_SHARING_MODE_EXCLUSIVE,
+					queueFamilyIndexCount = 0,
+					pQueueFamilyIndices = null,
+					initialLayout = VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED
+				};
+
+				VMA.VmaAllocationCreateInfo allocCreateInfo = new VMA.VmaAllocationCreateInfo
+				{
+					// FIXME: Assumption! -caleb
+					usage = VMA.VmaMemoryUsage.VMA_MEMORY_USAGE_GPU_ONLY
+				};
+
+				ulong handle;
+				IntPtr alloc;
+				int res = VMA.vmaCreateImage(
+					vkDevice.Allocator,
+					(IntPtr) (&imgCreateInfo),
+					ref allocCreateInfo,
+					out handle,
+					out alloc,
+					IntPtr.Zero
+				);
+				if (res != (int) VkResult.VK_SUCCESS)
+				{
+					throw new Exception(
+						"Could not create texture! Error: " + (VkResult) res
+					);
+				}
+
+				// Create the image view
+				ulong viewHandle;
+				VkImageViewCreateInfo viewCreateInfo = new VkImageViewCreateInfo
+				{
+					sType = VkStructureType.VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+					pNext = IntPtr.Zero,
+					flags = 0,
+					format = format,
+					image = handle,
+					viewType = VkImageViewType.VK_IMAGE_VIEW_TYPE_2D,
+					components = VkComponentMapping.Identity,
+					subresourceRange = new VkImageSubresourceRange
+					{
+						aspectMask = aspect,
+						baseMipLevel = 0,
+						levelCount = (uint) levelCount,
+						baseArrayLayer = 0,
+						layerCount = 1
+					}
+				};
+				res = (int) vkDevice.vkCreateImageView(
+					vkDevice.Device,
+					&viewCreateInfo,
+					IntPtr.Zero,
+					out viewHandle
+				);
+				if (res != (int) VkResult.VK_SUCCESS)
+				{
+					throw new Exception(
+						"Could not create image view! Error: " + (VkResult) res
+					);
+				}
+
+				// Set the public properties
+				Handle = handle;
+				Allocation = alloc;
+				ViewHandle = viewHandle;
+				HasMipmaps = levelCount > 1;
+			}
+
+			public void Dispose()
+			{
+				vkDevice.vkDestroyImageView(
+					vkDevice.Device,
+					ViewHandle,
+					IntPtr.Zero
+				);
 				VMA.vmaDestroyImage(
-					allocator,
+					vkDevice.Allocator,
 					Handle,
 					Allocation
 				);
+
+				Handle = 0;
+				ViewHandle = 0;
+				Allocation = IntPtr.Zero;
 			}
 		}
 
@@ -1595,18 +1730,28 @@ namespace Microsoft.Xna.Framework.Graphics
 				private set;
 			}
 
+			public ulong CurrentImage
+			{
+				get
+				{
+					return currentImage;
+				}
+			}
+
 			private VulkanDevice vkDevice;
 			private VkPresentModeKHR[] supportedPresentModes;
-			private uint imageCount;
+			private SurfaceFormat colorFormat;
 			private ulong renderPassPrototype;
 
 			private ulong swapchain;
-			private ulong[] swapchainImageViews;
+			private ulong oldSwapchain;
 
-			private Image[] depthStencilImages;
-			private ulong[] depthStencilImageViews;
+			private ulong currentImage;
 
-			private ulong[] framebuffers;
+			private VKTexture colorBuffer;
+			private VKTexture depthStencilBuffer;
+
+			private ulong framebuffer;
 
 			public VulkanBackbuffer(
 				VulkanDevice device,
@@ -1615,37 +1760,36 @@ namespace Microsoft.Xna.Framework.Graphics
 				DepthFormat depthFormat,
 				int multiSampleCount
 			) {
+				vkDevice = device;
 				Width = width;
 				Height = height;
-
 				DepthFormat = depthFormat;
 				MultiSampleCount = multiSampleCount;
-				vkDevice = device;
 
-				// Generate the prototypical render pass
-				// FIXME: Do we need to do this when resetting backbuffer instead?
-				CreateRenderPassPrototype();
+				colorFormat = SurfaceFormat.Color;
 
-				// Cache an array of supported VkPresentModeKHRs
-				unsafe
+				CacheSupportedPresentModes();
+				CreateRenderPassPrototype(); // FIXME: Do we need to do this when resetting backbuffer?
+			}
+
+			private unsafe void CacheSupportedPresentModes()
+			{
+				uint numPresentModes;
+				vkDevice.vkGetPhysicalDeviceSurfacePresentModesKHR(
+					vkDevice.PhysicalDevice,
+					vkDevice.WindowSurface,
+					out numPresentModes,
+					null
+				);
+				supportedPresentModes = new VkPresentModeKHR[numPresentModes];
+				fixed (VkPresentModeKHR* presentModesPtr = supportedPresentModes)
 				{
-					uint numPresentModes;
 					vkDevice.vkGetPhysicalDeviceSurfacePresentModesKHR(
 						vkDevice.PhysicalDevice,
 						vkDevice.WindowSurface,
 						out numPresentModes,
-						null
+						presentModesPtr
 					);
-					supportedPresentModes = new VkPresentModeKHR[numPresentModes];
-					fixed (VkPresentModeKHR* presentModesPtr = supportedPresentModes)
-					{
-						vkDevice.vkGetPhysicalDeviceSurfacePresentModesKHR(
-							vkDevice.PhysicalDevice,
-							vkDevice.WindowSurface,
-							out numPresentModes,
-							presentModesPtr
-						);
-					}
 				}
 			}
 
@@ -1660,342 +1804,6 @@ namespace Microsoft.Xna.Framework.Graphics
 				}
 
 				return false;
-			}
-
-			public unsafe void ResetFramebuffer(
-				PresentationParameters presentationParameters
-			) {
-				/* In Vulkan, resetting the backbuffer framebuffer means
-				 * creating a new swapchain and a new depth-stencil buffer
-				 * with updated image properties (size/format/etc.).
-				 */
-
-				// FIXME: Need to handle detatching/freeing old resources
-
-				// Fill out basic properties of the swapchain
-				VkSwapchainCreateInfoKHR createInfo = new VkSwapchainCreateInfoKHR();
-				createInfo.sType = VkStructureType.VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-				createInfo.pNext = IntPtr.Zero;
-				createInfo.flags = 0;
-				createInfo.surface = vkDevice.WindowSurface;
-
-				// Retrieve the surface capabilities
-				VkSurfaceCapabilitiesKHR surfaceCapabilities;
-				vkDevice.vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
-					vkDevice.PhysicalDevice,
-					vkDevice.WindowSurface,
-					out surfaceCapabilities
-				);
-
-				// Determine how many images to request
-				uint imageCount = surfaceCapabilities.minImageCount + 1;
-				if (surfaceCapabilities.maxImageCount > 0 &&
-					imageCount > surfaceCapabilities.maxImageCount)
-				{
-					imageCount = surfaceCapabilities.maxImageCount;
-				}
-				createInfo.minImageCount = imageCount;
-
-				// Specify the swapchain image format
-				createInfo.imageFormat = VkFormat.VK_FORMAT_R8G8B8A8_UNORM;
-				createInfo.imageColorSpace = VkColorSpaceKHR.VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
-
-				// Bound the size of swapchain images to the surface's supported limits
-				int imageWidth = MathHelper.Clamp(
-					Width,
-					(int) surfaceCapabilities.minImageExtent.width,
-					(int) surfaceCapabilities.maxImageExtent.width
-				);
-				int imageHeight = MathHelper.Clamp(
-					Height,
-					(int) surfaceCapabilities.maxImageExtent.height,
-					(int) surfaceCapabilities.minImageExtent.height
-				);
-				createInfo.imageExtent = new VkExtent2D(
-					(uint) imageWidth,
-					(uint) imageHeight
-				);
-
-				// Update our Width and Height variables to match
-				Width = imageWidth;
-				Height = imageHeight;
-
-				/* FIXME: From the docs...
-				 * 
-				 * On some platforms, it is normal that maxImageExtent may become (0, 0),
-				 * for example when the window is minimized. In such a case, it is not
-				 * possible to create a swapchain due to the Valid Usage requirements.
-				 * https://www.khronos.org/registry/vulkan/specs/1.1-extensions/man/html/VkSwapchainCreateInfoKHR.html
-				 * 
-				 * Should we do anything special to handle this case?
-				 * -caleb
-				 */
-
-				// Define how the images will be used
-				createInfo.imageArrayLayers = 1;
-				createInfo.imageUsage = (
-					VkImageUsageFlags.VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-					VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_DST_BIT
-				);
-
-				// Define concurrency details (if needed)
-				if (vkDevice.graphicsQueueFamilyIndex != vkDevice.presentationQueueFamilyIndex)
-				{
-					createInfo.imageSharingMode = VkSharingMode.VK_SHARING_MODE_CONCURRENT;
-					createInfo.queueFamilyIndexCount = 2;
-
-					uint[] indices =
-					{
-						vkDevice.graphicsQueueFamilyIndex,
-						vkDevice.presentationQueueFamilyIndex
-					};
-					fixed (uint* indicesPtr = indices)
-					{
-						// FIXME: This doesn't seem right... Should be pinned
-						createInfo.pQueueFamilyIndices = indicesPtr;
-					}
-				}
-				else
-				{
-					createInfo.imageSharingMode = VkSharingMode.VK_SHARING_MODE_EXCLUSIVE;
-					createInfo.queueFamilyIndexCount = 0;
-					createInfo.pQueueFamilyIndices = null;
-				}
-
-				// Transform is same as the device's current transform
-				createInfo.preTransform = surfaceCapabilities.currentTransform;
-
-				// Make the surface opaque
-				createInfo.compositeAlpha = VkCompositeAlphaFlagsKHR.VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-
-				// Check if the requested present interval is supported
-				PresentInterval presentInterval = presentationParameters.PresentationInterval;
-				VkPresentModeKHR presentMode = XNAToVK.PresentInterval[(int) presentInterval];
-				if (PresentModeSupported(presentMode))
-				{
-					createInfo.presentMode = presentMode;
-				}
-				else
-				{
-					// Fall back to vsync. This is always available.
-					createInfo.presentMode = VkPresentModeKHR.VK_PRESENT_MODE_FIFO_KHR;
-				}
-
-				// Clip stuff outside the visible area
-				createInfo.clipped = 1;
-
-				// FIXME: I suspect there's more to it than this...
-				createInfo.oldSwapchain = swapchain;
-
-				// Create the new swapchain!
-				VkResult res = vkDevice.vkCreateSwapchainKHR(
-					vkDevice.Device,
-					&createInfo,
-					IntPtr.Zero,
-					out swapchain
-				);
-				if (res != VkResult.VK_SUCCESS)
-				{
-					throw new Exception("Could not generate swapchain! Error: " + res);
-				}
-
-				// Store the images created by the new swapchain
-				CreateImageViews();
-
-				// Create depth buffer image views, if needed
-				if (DepthFormat != DepthFormat.None)
-				{
-					CreateDepthStencilImageViews();
-				}
-
-				// Create framebuffers
-				GenFramebuffers();
-				Console.WriteLine("Generated framebuffers!");
-			}
-
-			private unsafe void CreateImageViews()
-			{
-				// Create an array to hold the swapchain images
-				vkDevice.vkGetSwapchainImagesKHR(
-					vkDevice.Device,
-					swapchain,
-					out imageCount,
-					null
-				);
-				ulong[] swapchainImages = new ulong[imageCount];
-				fixed (ulong* swapchainImagesPtr = swapchainImages)
-				{
-					VkResult res = vkDevice.vkGetSwapchainImagesKHR(
-						vkDevice.Device,
-						swapchain,
-						out imageCount,
-						swapchainImagesPtr
-					);
-					if (res != VkResult.VK_SUCCESS)
-					{
-						throw new Exception(
-							"Could not retrieve swapchain images! Error: " + res
-						);
-					}
-				}
-
-				// Create image views to access the images
-				swapchainImageViews = new ulong[imageCount];
-				for (int i = 0; i < imageCount; i += 1)
-				{
-					VkImageViewCreateInfo createInfo = new VkImageViewCreateInfo
-					{
-						sType = VkStructureType.VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-						pNext = IntPtr.Zero,
-						flags = 0,
-						image = swapchainImages[i],
-						viewType = VkImageViewType.VK_IMAGE_VIEW_TYPE_2D,
-						format = VkFormat.VK_FORMAT_R8G8B8A8_UNORM,
-						components = VkComponentMapping.Identity,
-						subresourceRange = new VkImageSubresourceRange
-						{
-							aspectMask = VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT,
-							baseMipLevel = 0,
-							levelCount = 1,
-							baseArrayLayer = 0,
-							layerCount = 1
-						}
-					};
-
-					VkResult res = vkDevice.vkCreateImageView(
-						vkDevice.Device,
-						&createInfo,
-						IntPtr.Zero,
-						out swapchainImageViews[i]
-					);
-					if (res != VkResult.VK_SUCCESS)
-					{
-						throw new Exception("Could not create image view! Error: " + res);
-					}
-				}
-			}
-
-			private unsafe void CreateDepthStencilImageViews()
-			{
-				// Initialize an array of images
-				depthStencilImages = new Image[imageCount];
-
-				// Get queue indices
-				uint[] queueIndices = new uint[]
-				{
-					vkDevice.graphicsQueueFamilyIndex,
-					vkDevice.presentationQueueFamilyIndex
-				};
-				GCHandle pinnedQueueIndices = GCHandle.Alloc(queueIndices, GCHandleType.Pinned);
-				bool sameQueue = vkDevice.presentationQueueFamilyIndex == vkDevice.graphicsQueueFamilyIndex;
-
-				// Generate depth-stencil buffer image create info
-				VkImageCreateInfo imageCreateInfo = new VkImageCreateInfo
-				{
-					sType = VkStructureType.VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-					pNext = IntPtr.Zero,
-					flags = 0,
-					imageType = VkImageType.VK_IMAGE_TYPE_2D,
-					format = XNAToVK.DepthFormat[(int) DepthFormat],
-					extent = new VkExtent3D(
-						(uint) Width,
-						(uint) Height,
-						1
-					),
-					mipLevels = 1,
-					arrayLayers = 1,
-					samples = vkDevice.GetSampleCountFlags(MultiSampleCount), // FIXME: Is this right?
-					tiling = VkImageTiling.VK_IMAGE_TILING_OPTIMAL,
-					usage = (
-						VkImageUsageFlags.VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT |
-						VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_DST_BIT
-					),
-					sharingMode = (
-						(sameQueue)
-						? VkSharingMode.VK_SHARING_MODE_EXCLUSIVE
-						: VkSharingMode.VK_SHARING_MODE_CONCURRENT
-					),
-					queueFamilyIndexCount = (sameQueue) ? 0u : 2u,
-					pQueueFamilyIndices = (
-						(sameQueue)
-						? null
-						: (uint*) pinnedQueueIndices.AddrOfPinnedObject()
-					),
-					initialLayout = VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED
-				};
-
-				// Info about how we want to allocate the buffers
-				VMA.VmaAllocationCreateInfo allocInfo = new VMA.VmaAllocationCreateInfo
-				{
-					flags = VMA.VmaAllocationCreateFlags.VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT,
-					usage = VMA.VmaMemoryUsage.VMA_MEMORY_USAGE_GPU_ONLY
-				};
-
-				// Make the images!
-				for (int i = 0; i < imageCount; i += 1)
-				{
-					int res = VMA.vmaCreateImage(
-						vkDevice.Allocator,
-						(IntPtr) (&imageCreateInfo),
-						ref allocInfo,
-						out depthStencilImages[i].Handle,
-						out depthStencilImages[i].Allocation,
-						IntPtr.Zero
-					);
-					if (res != (int) VkResult.VK_SUCCESS)
-					{
-						throw new Exception(
-							"Could not create depth-stencil image! Error: " + res
-						);
-					}
-				}
-
-				// Free the pinned queue indices array
-				pinnedQueueIndices.Free();
-
-				// Determine which aspect flags we want for the image views
-				VkImageAspectFlags aspectFlags = VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT;
-				if (DepthFormat == DepthFormat.Depth24Stencil8)
-				{
-					aspectFlags |= VkImageAspectFlags.VK_IMAGE_ASPECT_STENCIL_BIT;
-				}
-
-				// Now we make the image views
-				depthStencilImageViews = new ulong[imageCount];
-				for (int i = 0; i < imageCount; i += 1)
-				{
-					VkImageViewCreateInfo imageViewCreateInfo = new VkImageViewCreateInfo
-					{
-						sType = VkStructureType.VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-						pNext = IntPtr.Zero,
-						flags = 0,
-						image = depthStencilImages[i].Handle,
-						viewType = VkImageViewType.VK_IMAGE_VIEW_TYPE_2D,
-						format = XNAToVK.DepthFormat[(int) DepthFormat],
-						components = VkComponentMapping.Identity,
-						subresourceRange = new VkImageSubresourceRange
-						{
-							aspectMask = aspectFlags,
-							baseMipLevel = 0,
-							levelCount = 1,
-							baseArrayLayer = 0,
-							layerCount = 1
-						}
-					};
-
-					VkResult res = vkDevice.vkCreateImageView(
-						vkDevice.Device,
-						&imageViewCreateInfo,
-						IntPtr.Zero,
-						out depthStencilImageViews[i]
-					);
-					if (res != VkResult.VK_SUCCESS)
-					{
-						throw new Exception(
-							"Failed to create depth-stencil image view! Error: " + res
-						);
-					}
-				}
 			}
 
 			private unsafe void CreateRenderPassPrototype()
@@ -2088,96 +1896,248 @@ namespace Microsoft.Xna.Framework.Graphics
 				descPinned.Free();
 			}
 
-			private unsafe void GenFramebuffers()
+			private unsafe void GenSwapchain(PresentInterval presentInterval)
 			{
-				// Initialize the framebuffer array
-				framebuffers = new ulong[imageCount];
+				// Fill out basic properties of the swapchain
+				VkSwapchainCreateInfoKHR createInfo = new VkSwapchainCreateInfoKHR();
+				createInfo.sType = VkStructureType.VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+				createInfo.pNext = IntPtr.Zero;
+				createInfo.flags = 0;
+				createInfo.surface = vkDevice.WindowSurface;
 
-				// Create the framebuffers
-				for (int i = 0; i < imageCount; i += 1)
+				// Retrieve the surface capabilities
+				VkSurfaceCapabilitiesKHR surfaceCapabilities;
+				vkDevice.vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
+					vkDevice.PhysicalDevice,
+					vkDevice.WindowSurface,
+					out surfaceCapabilities
+				);
+
+				// Determine how many images to request
+				uint imageCount = surfaceCapabilities.minImageCount + 1;
+				if (	surfaceCapabilities.maxImageCount > 0 &&
+					imageCount > surfaceCapabilities.maxImageCount	)
 				{
-					ulong[] attachments = new ulong[]
-					{
-						swapchainImageViews[i],
-						depthStencilImageViews[i]
-					};
-					GCHandle attachmentsPin = GCHandle.Alloc(
-						attachments,
-						GCHandleType.Pinned
-					);
-
-					VkFramebufferCreateInfo createInfo = new VkFramebufferCreateInfo
-					{
-						sType = VkStructureType.VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-						pNext = IntPtr.Zero,
-						flags = 0,
-						renderPass = renderPassPrototype,
-						attachmentCount = 2,
-						pAttachments = (ulong*) attachmentsPin.AddrOfPinnedObject(),
-						width = (uint) Width,
-						height = (uint) Height,
-						layers = 1,
-					};
-
-					VkResult res = vkDevice.vkCreateFramebuffer(
-						vkDevice.Device,
-						&createInfo,
-						IntPtr.Zero,
-						out framebuffers[i]
-					);
-					if (res != VkResult.VK_SUCCESS)
-					{
-						throw new Exception(
-							"Could not create framebuffer! Error: " + res
-						);
-					}
+					imageCount = surfaceCapabilities.maxImageCount;
 				}
+				createInfo.minImageCount = imageCount;
+
+				// Specify the swapchain image format
+				createInfo.imageFormat = XNAToVK.SurfaceFormat[(int) colorFormat];
+				createInfo.imageColorSpace = VkColorSpaceKHR.VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+
+				// Bound the size of swapchain images to the surface's supported limits
+				int imageWidth = MathHelper.Clamp(
+					Width,
+					(int) surfaceCapabilities.minImageExtent.width,
+					(int) surfaceCapabilities.maxImageExtent.width
+				);
+				int imageHeight = MathHelper.Clamp(
+					Height,
+					(int) surfaceCapabilities.maxImageExtent.height,
+					(int) surfaceCapabilities.minImageExtent.height
+				);
+				createInfo.imageExtent = new VkExtent2D(
+					(uint) imageWidth,
+					(uint) imageHeight
+				);
+
+				// Update our Width and Height variables to match
+				Width = imageWidth;
+				Height = imageHeight;
+
+				/* FIXME: From the docs...
+				 * 
+				 * On some platforms, it is normal that maxImageExtent may become (0, 0),
+				 * for example when the window is minimized. In such a case, it is not
+				 * possible to create a swapchain due to the Valid Usage requirements.
+				 * https://www.khronos.org/registry/vulkan/specs/1.1-extensions/man/html/VkSwapchainCreateInfoKHR.html
+				 * 
+				 * Should we do anything special to handle this case?
+				 * -caleb
+				 */
+
+				// Define how the images will be used
+				createInfo.imageArrayLayers = 1;
+				createInfo.imageUsage = (
+					VkImageUsageFlags.VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+					VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_DST_BIT
+				);
+
+				// Define concurrency details
+				uint[] indices =
+				{
+					vkDevice.graphicsQueueFamilyIndex,
+					vkDevice.presentationQueueFamilyIndex
+				};
+				GCHandle indicesPinned = GCHandle.Alloc(indices, GCHandleType.Pinned);
+
+				if (vkDevice.graphicsQueueFamilyIndex != vkDevice.presentationQueueFamilyIndex)
+				{
+					createInfo.imageSharingMode = VkSharingMode.VK_SHARING_MODE_CONCURRENT;
+					createInfo.queueFamilyIndexCount = 2;
+					createInfo.pQueueFamilyIndices = (
+						(uint*) indicesPinned.AddrOfPinnedObject()
+					);
+				}
+				else
+				{
+					createInfo.imageSharingMode = VkSharingMode.VK_SHARING_MODE_EXCLUSIVE;
+					createInfo.queueFamilyIndexCount = 0;
+					createInfo.pQueueFamilyIndices = null;
+				}
+
+				// Transform is same as the device's current transform
+				createInfo.preTransform = surfaceCapabilities.currentTransform;
+
+				// Make the surface opaque
+				createInfo.compositeAlpha =
+					VkCompositeAlphaFlagsKHR.VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+
+				// Check if the requested present interval is supported
+				VkPresentModeKHR presentMode = XNAToVK.PresentInterval[(int) presentInterval];
+				if (PresentModeSupported(presentMode))
+				{
+					createInfo.presentMode = presentMode;
+				}
+				else
+				{
+					// Fall back to vsync. This is always available.
+					createInfo.presentMode = VkPresentModeKHR.VK_PRESENT_MODE_FIFO_KHR;
+				}
+
+				// Clip stuff outside the visible area
+				createInfo.clipped = 1;
+
+				// FIXME: I suspect there's more to it than this...
+				createInfo.oldSwapchain = swapchain;
+				oldSwapchain = swapchain;
+
+				// Create the new swapchain!
+				VkResult res = vkDevice.vkCreateSwapchainKHR(
+					vkDevice.Device,
+					&createInfo,
+					IntPtr.Zero,
+					out swapchain
+				);
+				if (res != VkResult.VK_SUCCESS)
+				{
+					throw new Exception("Could not generate swapchain! Error: " + res);
+				}
+
+				// Clean up
+				indicesPinned.Free();
+			}
+
+			public void ResetFramebuffer(
+				PresentationParameters presentationParameters
+			) {
+				// FIXME: Need to handle detatching/freeing old resources
+				GenSwapchain(presentationParameters.PresentationInterval);
+
+				// Create the color buffer image/view
+				VkImageUsageFlags colorUsageFlags = (
+					VkImageUsageFlags.VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+					VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_SRC_BIT
+				);
+				colorBuffer = new VKTexture(
+					vkDevice,
+					XNAToVK.SurfaceFormat[(int) colorFormat],
+					Width,
+					Height,
+					1,
+					MultiSampleCount,
+					colorUsageFlags,
+					VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT
+				);
+
+				// Create the depth-stencil image/view
+				VkImageUsageFlags depthUsageFlags = (
+					VkImageUsageFlags.VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT |
+					VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_SRC_BIT
+				);
+				VkImageAspectFlags aspectFlags = VkImageAspectFlags.VK_IMAGE_ASPECT_DEPTH_BIT;
+				if (DepthFormat == DepthFormat.Depth24Stencil8)
+				{
+					// We don't always need a stencil, but when we do...
+					aspectFlags |= VkImageAspectFlags.VK_IMAGE_ASPECT_STENCIL_BIT;
+				}
+				depthStencilBuffer = new VKTexture(
+					vkDevice,
+					XNAToVK.DepthFormat[(int) DepthFormat],
+					Width,
+					Height,
+					1,
+					MultiSampleCount,
+					depthUsageFlags,
+					aspectFlags
+				);
+
+				// Create the framebuffer
+				GenFramebuffer();
+			}
+
+			private unsafe void GenFramebuffer()
+			{
+				// List all the attachments
+				ulong[] attachments = new ulong[]
+				{
+					colorBuffer.ViewHandle,
+					depthStencilBuffer.ViewHandle
+				};
+				GCHandle attachmentsPinned = GCHandle.Alloc(
+					attachments,
+					GCHandleType.Pinned
+				);
+
+				// Create the framebuffer
+				VkFramebufferCreateInfo createInfo = new VkFramebufferCreateInfo
+				{
+					sType = VkStructureType.VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+					pNext = IntPtr.Zero,
+					flags = 0,
+					renderPass = renderPassPrototype,
+					attachmentCount = 2,
+					pAttachments = (
+						(ulong*) attachmentsPinned.AddrOfPinnedObject()
+					),
+					width = (uint) Width,
+					height = (uint) Height,
+					layers = 1,
+				};
+
+				VkResult res = vkDevice.vkCreateFramebuffer(
+					vkDevice.Device,
+					&createInfo,
+					IntPtr.Zero,
+					out framebuffer
+				);
+				if (res != VkResult.VK_SUCCESS)
+				{
+					throw new Exception(
+						"Could not create framebuffer! Error: " + res
+					);
+				}
+
+				// Clean up
+				attachmentsPinned.Free();
 			}
 
 			public void Dispose()
 			{
-				// Destroy all framebuffers
-				foreach (ulong framebuffer in framebuffers)
-				{
-					vkDevice.vkDestroyFramebuffer(
-						vkDevice.Device,
-						framebuffer,
-						IntPtr.Zero
-					);
-				}
-				framebuffers = null;
+				// Destroy framebuffer
+				vkDevice.vkDestroyFramebuffer(
+					vkDevice.Device,
+					framebuffer,
+					IntPtr.Zero
+				);
 
-				// Destroy all swapchain image views
-				foreach (ulong imageView in swapchainImageViews)
-				{
-					vkDevice.vkDestroyImageView(
-						vkDevice.Device,
-						imageView,
-						IntPtr.Zero
-					);
-				}
-				swapchainImageViews = null;
+				// Destroy attachments
+				depthStencilBuffer.Dispose();
+				depthStencilBuffer = null;
 
-				/* We don't need to destroy the swapchain
-				 * images since we don't own them.
-				 */
-
-				// Destroy depth-stencil stuff
-				foreach (ulong imageView in depthStencilImageViews)
-				{
-					vkDevice.vkDestroyImageView(
-						vkDevice.Device,
-						imageView,
-						IntPtr.Zero
-					);
-				}
-				depthStencilImageViews = null;
-
-				foreach (Image img in depthStencilImages)
-				{
-					img.Dispose(vkDevice.Allocator);
-				}
-				depthStencilImages = null;
+				colorBuffer.Dispose();
+				colorBuffer = null;
 
 				// Destroy the prototype render pass
 				vkDevice.vkDestroyRenderPass(
@@ -2249,8 +2209,8 @@ namespace Microsoft.Xna.Framework.Graphics
 
 		public void Clear(ClearOptions options, Vector4 color, float depth, int stencil)
 		{
-			Console.WriteLine("CLEAR!");
-			//throw new NotImplementedException();
+			//Console.WriteLine("CLEAR!");
+			throw new NotImplementedException();
 		}
 
 		public IGLEffect CloneEffect(IGLEffect effect)
@@ -2435,10 +2395,13 @@ namespace Microsoft.Xna.Framework.Graphics
 			throw new NotImplementedException();
 		}
 
-		public void SwapBuffers(Rectangle? sourceRectangle, Rectangle? destinationRectangle, IntPtr overrideWindowHandle)
-		{
-			Console.WriteLine("SWAP!");
-			//throw new NotImplementedException();
+		public void SwapBuffers(
+			Rectangle? sourceRectangle,
+			Rectangle? destinationRectangle,
+			IntPtr overrideWindowHandle
+		) {
+			//Console.WriteLine("SWAP!");
+			throw new NotImplementedException();
 		}
 
 		#region XNA->Vulkan Enum Conversion Class
@@ -2447,7 +2410,7 @@ namespace Microsoft.Xna.Framework.Graphics
 		{
 			public static VkFormat[] SurfaceFormat =
 			{
-				VkFormat.VK_FORMAT_R8G8B8A8_UINT,		// SurfaceFormat.Color
+				VkFormat.VK_FORMAT_R8G8B8A8_UNORM,		// SurfaceFormat.Color
 				VkFormat.VK_FORMAT_R5G6B5_UNORM_PACK16,		// SurfaceFormat.Bgr565
 				VkFormat.VK_FORMAT_R5G5B5A1_UNORM_PACK16,	// SurfaceFormat.Bgra5551
 				VkFormat.VK_FORMAT_B4G4R4A4_UNORM_PACK16,	// SurfaceFormat.Bgra4444
@@ -2456,9 +2419,9 @@ namespace Microsoft.Xna.Framework.Graphics
 				VkFormat.VK_FORMAT_BC3_UNORM_BLOCK,		// SurfaceFormat.Dxt5
 				VkFormat.VK_FORMAT_R8G8_SNORM,			// SurfaceFormat.NormalizedByte2
 				VkFormat.VK_FORMAT_R4G4B4A4_UNORM_PACK16,	// SurfaceFormat.NormalizedByte4
-				VkFormat.VK_FORMAT_A2R10G10B10_UINT_PACK32,	// SurfaceFormat.Rgba1010102
-				VkFormat.VK_FORMAT_R16G16_UINT,			// SurfaceFormat.Rg32
-				VkFormat.VK_FORMAT_R16G16B16A16_UINT,		// SurfaceFormat.Rgba64
+				VkFormat.VK_FORMAT_A2R10G10B10_UNORM_PACK32,	// SurfaceFormat.Rgba1010102
+				VkFormat.VK_FORMAT_R16G16_UNORM,		// SurfaceFormat.Rg32
+				VkFormat.VK_FORMAT_R16G16B16A16_UNORM,		// SurfaceFormat.Rgba64
 				VkFormat.VK_FORMAT_R8_UNORM,			// SurfaceFormat.Alpha8
 				VkFormat.VK_FORMAT_R32_SFLOAT,			// SurfaceFormat.Single
 				VkFormat.VK_FORMAT_R32G32_SFLOAT,		// SurfaceFormat.Vector2
@@ -2467,7 +2430,7 @@ namespace Microsoft.Xna.Framework.Graphics
 				VkFormat.VK_FORMAT_R16G16_SFLOAT,		// SurfaceFormat.HalfVector2
 				VkFormat.VK_FORMAT_R16G16B16A16_SFLOAT,		// SurfaceFormat.HalfVector4
 				VkFormat.VK_FORMAT_R16G16B16A16_SFLOAT,		// SurfaceFormat.HdrBlendable
-				VkFormat.VK_FORMAT_R8G8B8A8_UINT		// SurfaceFormat.ColorBgraEXT
+				VkFormat.VK_FORMAT_R8G8B8A8_UNORM		// SurfaceFormat.ColorBgraEXT
 			};
 
 			public static VkFormat[] DepthFormat =
@@ -2475,7 +2438,7 @@ namespace Microsoft.Xna.Framework.Graphics
 				VkFormat.VK_FORMAT_UNDEFINED,		// DepthFormat.None
 				VkFormat.VK_FORMAT_D16_UNORM,		// DepthFormat.Depth16
 				VkFormat.VK_FORMAT_X8_D24_UNORM_PACK32,	// DepthFormat.Depth24 (FIXME: Is this right?)
-				VkFormat.VK_FORMAT_D24_UNORM_S8_UINT	// DepthFormat.Depth24Stencil8
+				VkFormat.VK_FORMAT_D24_UNORM_S8_UINT,	// DepthFormat.Depth24Stencil8
 			};
 
 			public static VkPresentModeKHR[] PresentInterval =
