@@ -406,6 +406,7 @@
     <Compile Include="lib\FAudio\csharp\FAudio.cs" />
     <Compile Include="lib\MojoShader\csharp\MojoShader.cs" />
     <Compile Include="lib\Theorafile\csharp\Theorafile.cs" />
+    <Compile Include="lib\VMA-CS\VMA.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="FNA.dll.config">

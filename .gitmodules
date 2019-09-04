@@ -10,3 +10,6 @@
 [submodule "lib/Theorafile"]
 	path = lib/Theorafile
 	url = git://github.com/FNA-XNA/Theorafile.git
+[submodule "lib/VMA-CS"]
+	path = lib/VMA-CS
+	url = https://github.com/TheSpydog/VMA-CS.git

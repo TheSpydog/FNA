@@ -1285,6 +1285,166 @@ namespace Microsoft.Xna.Framework.Graphics
 			VK_DYNAMIC_STATE_MAX_ENUM = 0x7FFFFFFF
 		}
 
+		private enum VkBufferCreateFlags
+		{
+			VK_BUFFER_CREATE_SPARSE_BINDING_BIT = 0x00000001,
+			VK_BUFFER_CREATE_SPARSE_RESIDENCY_BIT = 0x00000002,
+			VK_BUFFER_CREATE_SPARSE_ALIASED_BIT = 0x00000004,
+			VK_BUFFER_CREATE_PROTECTED_BIT = 0x00000008,
+			VK_BUFFER_CREATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT_EXT = 0x00000010,
+			VK_BUFFER_CREATE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkBufferUsageFlags
+		{
+			VK_BUFFER_USAGE_TRANSFER_SRC_BIT = 0x00000001,
+			VK_BUFFER_USAGE_TRANSFER_DST_BIT = 0x00000002,
+			VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT = 0x00000004,
+			VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT = 0x00000008,
+			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT = 0x00000010,
+			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT = 0x00000020,
+			VK_BUFFER_USAGE_INDEX_BUFFER_BIT = 0x00000040,
+			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT = 0x00000080,
+			VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT = 0x00000100,
+			VK_BUFFER_USAGE_TRANSFORM_FEEDBACK_BUFFER_BIT_EXT = 0x00000800,
+			VK_BUFFER_USAGE_TRANSFORM_FEEDBACK_COUNTER_BUFFER_BIT_EXT = 0x00001000,
+			VK_BUFFER_USAGE_CONDITIONAL_RENDERING_BIT_EXT = 0x00000200,
+			VK_BUFFER_USAGE_RAY_TRACING_BIT_NV = 0x00000400,
+			VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_EXT = 0x00020000,
+			VK_BUFFER_USAGE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkMemoryHeapFlags
+		{
+			VK_MEMORY_HEAP_DEVICE_LOCAL_BIT = 0x00000001,
+			VK_MEMORY_HEAP_MULTI_INSTANCE_BIT = 0x00000002,
+			VK_MEMORY_HEAP_MULTI_INSTANCE_BIT_KHR = VK_MEMORY_HEAP_MULTI_INSTANCE_BIT,
+			VK_MEMORY_HEAP_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkMemoryPropertyFlags
+		{
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT = 0x00000001,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT = 0x00000002,
+			VK_MEMORY_PROPERTY_HOST_COHERENT_BIT = 0x00000004,
+			VK_MEMORY_PROPERTY_HOST_CACHED_BIT = 0x00000008,
+			VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT = 0x00000010,
+			VK_MEMORY_PROPERTY_PROTECTED_BIT = 0x00000020,
+			VK_MEMORY_PROPERTY_DEVICE_COHERENT_BIT_AMD = 0x00000040,
+			VK_MEMORY_PROPERTY_DEVICE_UNCACHED_BIT_AMD = 0x00000080,
+			VK_MEMORY_PROPERTY_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkAttachmentDescriptionFlags
+		{
+			VK_ATTACHMENT_DESCRIPTION_MAY_ALIAS_BIT = 0x00000001,
+			VK_ATTACHMENT_DESCRIPTION_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkAttachmentLoadOp
+		{
+			VK_ATTACHMENT_LOAD_OP_LOAD = 0,
+			VK_ATTACHMENT_LOAD_OP_CLEAR = 1,
+			VK_ATTACHMENT_LOAD_OP_DONT_CARE = 2,
+			VK_ATTACHMENT_LOAD_OP_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkAttachmentStoreOp
+		{
+			VK_ATTACHMENT_STORE_OP_STORE = 0,
+			VK_ATTACHMENT_STORE_OP_DONT_CARE = 1,
+			VK_ATTACHMENT_STORE_OP_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkSubpassDescriptionFlags
+		{
+			VK_SUBPASS_DESCRIPTION_PER_VIEW_ATTRIBUTES_BIT_NVX = 0x00000001,
+			VK_SUBPASS_DESCRIPTION_PER_VIEW_POSITION_X_ONLY_BIT_NVX = 0x00000002,
+			VK_SUBPASS_DESCRIPTION_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkPipelineBindPoint
+		{
+			VK_PIPELINE_BIND_POINT_GRAPHICS = 0,
+			VK_PIPELINE_BIND_POINT_COMPUTE = 1,
+			VK_PIPELINE_BIND_POINT_RAY_TRACING_NV = 1000165000,
+			VK_PIPELINE_BIND_POINT_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkPipelineStageFlags
+		{
+			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT = 0x00000001,
+			VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT = 0x00000002,
+			VK_PIPELINE_STAGE_VERTEX_INPUT_BIT = 0x00000004,
+			VK_PIPELINE_STAGE_VERTEX_SHADER_BIT = 0x00000008,
+			VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT = 0x00000010,
+			VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT = 0x00000020,
+			VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT = 0x00000040,
+			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT = 0x00000080,
+			VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT = 0x00000100,
+			VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT = 0x00000200,
+			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT = 0x00000400,
+			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT = 0x00000800,
+			VK_PIPELINE_STAGE_TRANSFER_BIT = 0x00001000,
+			VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT = 0x00002000,
+			VK_PIPELINE_STAGE_HOST_BIT = 0x00004000,
+			VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT = 0x00008000,
+			VK_PIPELINE_STAGE_ALL_COMMANDS_BIT = 0x00010000,
+			VK_PIPELINE_STAGE_TRANSFORM_FEEDBACK_BIT_EXT = 0x01000000,
+			VK_PIPELINE_STAGE_CONDITIONAL_RENDERING_BIT_EXT = 0x00040000,
+			VK_PIPELINE_STAGE_COMMAND_PROCESS_BIT_NVX = 0x00020000,
+			VK_PIPELINE_STAGE_SHADING_RATE_IMAGE_BIT_NV = 0x00400000,
+			VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV = 0x00200000,
+			VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV = 0x02000000,
+			VK_PIPELINE_STAGE_TASK_SHADER_BIT_NV = 0x00080000,
+			VK_PIPELINE_STAGE_MESH_SHADER_BIT_NV = 0x00100000,
+			VK_PIPELINE_STAGE_FRAGMENT_DENSITY_PROCESS_BIT_EXT = 0x00800000,
+			VK_PIPELINE_STAGE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkAccessFlags
+		{
+			VK_ACCESS_INDIRECT_COMMAND_READ_BIT = 0x00000001,
+			VK_ACCESS_INDEX_READ_BIT = 0x00000002,
+			VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT = 0x00000004,
+			VK_ACCESS_UNIFORM_READ_BIT = 0x00000008,
+			VK_ACCESS_INPUT_ATTACHMENT_READ_BIT = 0x00000010,
+			VK_ACCESS_SHADER_READ_BIT = 0x00000020,
+			VK_ACCESS_SHADER_WRITE_BIT = 0x00000040,
+			VK_ACCESS_COLOR_ATTACHMENT_READ_BIT = 0x00000080,
+			VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT = 0x00000100,
+			VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT = 0x00000200,
+			VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT = 0x00000400,
+			VK_ACCESS_TRANSFER_READ_BIT = 0x00000800,
+			VK_ACCESS_TRANSFER_WRITE_BIT = 0x00001000,
+			VK_ACCESS_HOST_READ_BIT = 0x00002000,
+			VK_ACCESS_HOST_WRITE_BIT = 0x00004000,
+			VK_ACCESS_MEMORY_READ_BIT = 0x00008000,
+			VK_ACCESS_MEMORY_WRITE_BIT = 0x00010000,
+			VK_ACCESS_TRANSFORM_FEEDBACK_WRITE_BIT_EXT = 0x02000000,
+			VK_ACCESS_TRANSFORM_FEEDBACK_COUNTER_READ_BIT_EXT = 0x04000000,
+			VK_ACCESS_TRANSFORM_FEEDBACK_COUNTER_WRITE_BIT_EXT = 0x08000000,
+			VK_ACCESS_CONDITIONAL_RENDERING_READ_BIT_EXT = 0x00100000,
+			VK_ACCESS_COMMAND_PROCESS_READ_BIT_NVX = 0x00020000,
+			VK_ACCESS_COMMAND_PROCESS_WRITE_BIT_NVX = 0x00040000,
+			VK_ACCESS_COLOR_ATTACHMENT_READ_NONCOHERENT_BIT_EXT = 0x00080000,
+			VK_ACCESS_SHADING_RATE_IMAGE_READ_BIT_NV = 0x00800000,
+			VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV = 0x00200000,
+			VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV = 0x00400000,
+			VK_ACCESS_FRAGMENT_DENSITY_MAP_READ_BIT_EXT = 0x01000000,
+			VK_ACCESS_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkDependencyFlags
+		{
+			VK_DEPENDENCY_BY_REGION_BIT = 0x00000001,
+			VK_DEPENDENCY_DEVICE_GROUP_BIT = 0x00000004,
+			VK_DEPENDENCY_VIEW_LOCAL_BIT = 0x00000002,
+			VK_DEPENDENCY_VIEW_LOCAL_BIT_KHR = VK_DEPENDENCY_VIEW_LOCAL_BIT,
+			VK_DEPENDENCY_DEVICE_GROUP_BIT_KHR = VK_DEPENDENCY_DEVICE_GROUP_BIT,
+			VK_DEPENDENCY_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
+		}
+
 		#endregion
 
 		#region Private Constants
@@ -1292,6 +1452,8 @@ namespace Microsoft.Xna.Framework.Graphics
 		private const int VK_MAX_EXTENSION_NAME_SIZE = 256;
 		private const int VK_MAX_DESCRIPTION_SIZE = 256;
 		private const int VK_MAX_PHYSICAL_DEVICE_NAME_SIZE = 256;
+		private const int VK_MAX_MEMORY_TYPES = 32;
+		private const int VK_MAX_MEMORY_HEAPS = 16;
 		private const int VK_UUID_SIZE = 16;
 
 		#endregion
@@ -1673,7 +1835,7 @@ namespace Microsoft.Xna.Framework.Graphics
 			public VkFramebufferCreateFlags flags;
 			public ulong renderPass;
 			public uint attachmentCount;
-			public ulong* pImageViewAttachments;
+			public ulong* pAttachments;
 			public uint width;
 			public uint height;
 			public uint layers;
@@ -1999,6 +2161,131 @@ namespace Microsoft.Xna.Framework.Graphics
 			public VkPushConstantRange* pPushConstantRanges;
 		}
 
+		private struct VkBufferCopy
+		{
+			public ulong srcOffset;
+			public ulong dstOffset;
+			public ulong size;
+		}
+
+		private unsafe struct VkBufferCreateInfo
+		{
+			public VkStructureType sType;
+			public IntPtr pNext;
+			public VkBufferCreateFlags flags;
+			public ulong size;
+			public VkBufferUsageFlags usage;
+			public VkSharingMode sharingMode;
+			public uint queueFamilyIndexCount;
+			public uint* pQueueFamilyIndices;
+		}
+
+		private struct VkMappedMemoryRange
+		{
+			public VkStructureType sType;
+			public IntPtr pNext;
+			public ulong memory;
+			public ulong offset;
+			public ulong size;
+		}
+
+		private struct VkMemoryAllocateInfo
+		{
+			public VkStructureType sType;
+			public IntPtr pNext;
+			public ulong allocationSize;
+			public uint memoryTypeIndex;
+		}
+
+		private struct VkMemoryRequirements
+		{
+			public ulong size;
+			public ulong alignment;
+			public uint memoryTypeBits;
+		}
+
+		private struct VkMemoryHeap
+		{
+			public ulong size;
+			public VkMemoryHeapFlags flags;
+		}
+
+		private struct VkMemoryType
+		{
+			public VkMemoryPropertyFlags propertyFlags;
+			public uint heapIndex;
+		}
+
+		private struct VkPhysicalDeviceMemoryProperties
+		{
+			public uint memoryTypeCount;
+
+			[MarshalAs(UnmanagedType.ByValArray, SizeConst = VK_MAX_MEMORY_TYPES)]
+			public VkMemoryType[] memoryTypes;
+
+			public uint memoryHeapCount;
+
+			[MarshalAs(UnmanagedType.ByValArray, SizeConst = VK_MAX_MEMORY_HEAPS)]
+			public VkMemoryHeap[] memoryHeaps;
+		}
+
+		private struct VkAttachmentDescription
+		{
+			public VkAttachmentDescriptionFlags flags;
+			public VkFormat format;
+			public VkSampleCountFlags samples;
+			public VkAttachmentLoadOp loadOp;
+			public VkAttachmentStoreOp storeOp;
+			public VkAttachmentLoadOp stencilLoadOp;
+			public VkAttachmentStoreOp stencilStoreOp;
+			public VkImageLayout initialLayout;
+			public VkImageLayout finalLayout;
+		}
+
+		private struct VkAttachmentReference
+		{
+			public uint attachment;
+			public VkImageLayout layout;
+		}
+
+		private unsafe struct VkSubpassDescription
+		{
+			public VkSubpassDescriptionFlags flags;
+			public VkPipelineBindPoint pipelineBindPoint;
+			public uint inputAttachmentCount;
+			public VkAttachmentReference* pInputAttachments;
+			public uint colorAttachmentCount;
+			public VkAttachmentReference* pColorAttachments;
+			public VkAttachmentReference* pResolveAttachments;
+			public VkAttachmentReference* pDepthStencilAttachment;
+			public uint preserveAttachmentCount;
+			public uint* pPreserveAttachments;
+		}
+
+		private struct VkSubpassDependency
+		{
+			public uint srcSubpass;
+			public uint dstSubpass;
+			public VkPipelineStageFlags srcStageMask;
+			public VkPipelineStageFlags dstStageMask;
+			public VkAccessFlags srcAccessMask;
+			public VkAccessFlags dstAccessMask;
+			public VkDependencyFlags dependencyFlags;
+		}
+
+		private unsafe struct VkRenderPassCreateInfo
+		{
+			public VkStructureType sType;
+			public IntPtr pNext;
+			public uint flags;
+			public uint attachmentCount;
+			public VkAttachmentDescription* pAttachments;
+			public uint subpassCount;
+			public VkSubpassDescription* pSubpasses;
+			public uint dependencyCount;
+			public VkSubpassDependency* pDependencies;
+		}
+
 		#endregion
 
 		#region UTF8 Marshaling
@@ -2133,6 +2420,8 @@ namespace Microsoft.Xna.Framework.Graphics
 
 		public void LoadInstanceEntryPoints()
 		{
+			// FIXME: Clean all this up
+
 			vkDestroyInstance = (DestroyInstance) GetProcAddress(
 				"vkDestroyInstance",
 				typeof(DestroyInstance)
@@ -2169,37 +2458,109 @@ namespace Microsoft.Xna.Framework.Graphics
 				"vkGetDeviceQueue",
 				typeof(GetDeviceQueue)
 			);
-			vkGetPhysicalDeviceFormatProperties = (GetPhysicalDeviceFormatProperties)GetProcAddress(
+			vkGetPhysicalDeviceFormatProperties = (GetPhysicalDeviceFormatProperties) GetProcAddress(
 				"vkGetPhysicalDeviceFormatProperties",
 				typeof(GetPhysicalDeviceFormatProperties)
 			);
-			vkCreateImage = (CreateImage)GetProcAddress(
+			vkCreateImage = (CreateImage) GetProcAddress(
 				"vkCreateImage",
 				typeof(CreateImage)
 			);
-			vkDestroyImage = (DestroyImage)GetProcAddress(
+			vkDestroyImage = (DestroyImage) GetProcAddress(
 				"vkDestroyImage",
 				typeof(DestroyImage)
 			);
-			vkCreateImageView = (CreateImageView)GetProcAddress(
+			vkCreateImageView = (CreateImageView) GetProcAddress(
 				"vkCreateImageView",
 				typeof(CreateImageView)
 			);
-			vkDestroyImageView = (DestroyImageView)GetProcAddress(
+			vkDestroyImageView = (DestroyImageView) GetProcAddress(
 				"vkDestroyImageView",
 				typeof(DestroyImageView)
 			);
-			vkCreateGraphicsPipelines = (CreateGraphicsPipelines)GetProcAddress(
+			vkCreateGraphicsPipelines = (CreateGraphicsPipelines) GetProcAddress(
 				"vkCreateGraphicsPipelines",
 				typeof(CreateGraphicsPipelines)
 			);
-			vkCreatePipelineLayout = (CreatePipelineLayout)GetProcAddress(
+			vkCreatePipelineLayout = (CreatePipelineLayout) GetProcAddress(
 				"vkCreatePipelineLayout",
 				typeof(CreatePipelineLayout)
 			);
+			vkAllocateMemory = (AllocateMemory) GetProcAddress(
+				"vkAllocateMemory",
+				typeof(AllocateMemory)
+			);
+			vkBindBufferMemory = (BindBufferMemory) GetProcAddress(
+				"vkBindBufferMemory",
+				typeof(BindBufferMemory)
+			);
+			vkBindImageMemory = (BindImageMemory) GetProcAddress(
+				"vkBindImageMemory",
+				typeof(BindImageMemory)
+			);
+			vkCmdCopyBuffer = (CmdCopyBuffer) GetProcAddress(
+				"vkCmdCopyBuffer",
+				typeof(CmdCopyBuffer)
+			);
+			vkCreateBuffer = (CreateBuffer) GetProcAddress(
+				"vkCreateBuffer",
+				typeof(CreateBuffer)
+			);
+			vkDestroyBuffer = (DestroyBuffer) GetProcAddress(
+				"vkDestroyBuffer",
+				typeof(DestroyBuffer)
+			);
+			vkFlushMappedMemoryRanges = (FlushMappedMemoryRanges) GetProcAddress(
+				"vkFlushMappedMemoryRanges",
+				typeof(FlushMappedMemoryRanges)
+			);
+			vkFreeMemory = (FreeMemory) GetProcAddress(
+				"vkFreeMemory",
+				typeof(FreeMemory)
+			);
+			vkGetBufferMemoryRequirements = (GetBufferMemoryRequirements) GetProcAddress(
+				"vkGetBufferMemoryRequirements",
+				typeof(GetBufferMemoryRequirements)
+			);
+			vkGetImageMemoryRequirements = (GetImageMemoryRequirements) GetProcAddress(
+				"vkGetImageMemoryRequirements",
+				typeof(GetImageMemoryRequirements)
+			);
+			vkGetPhysicalDeviceMemoryProperties = (GetPhysicalDeviceMemoryProperties) GetProcAddress(
+				"vkGetPhysicalDeviceMemoryProperties",
+				typeof(GetPhysicalDeviceMemoryProperties)
+			);
+			vkInvalidateMappedMemoryRanges = (InvalidateMappedMemoryRanges) GetProcAddress(
+				"vkInvalidateMappedMemoryRanges",
+				typeof(InvalidateMappedMemoryRanges)
+			);
+			vkMapMemory = (MapMemory) GetProcAddress(
+				"vkMapMemory",
+				typeof(MapMemory)
+			);
+			vkUnmapMemory = (UnmapMemory) GetProcAddress(
+				"vkUnmapMemory",
+				typeof(UnmapMemory)
+			);
+			vkCreateFramebuffer = (CreateFramebuffer) GetProcAddress(
+				"vkCreateFramebuffer",
+				typeof(CreateFramebuffer)
+			);
+			vkDestroyFramebuffer = (DestroyFramebuffer) GetProcAddress(
+				"vkDestroyFramebuffer",
+				typeof(DestroyFramebuffer)
+			);
+			vkCreateRenderPass = (CreateRenderPass) GetProcAddress(
+				"vkCreateRenderPass",
+				typeof(CreateRenderPass)
+			);
+			vkDestroyRenderPass = (DestroyRenderPass) GetProcAddress(
+				"vkDestroyRenderPass",
+				typeof(DestroyRenderPass)
+			);
 
 			// FIXME: Need to check for extension?
-			vkDestroySurfaceKHR = (DestroySurfaceKHR)GetProcAddress(
+			vkDestroySurfaceKHR = (DestroySurfaceKHR) GetProcAddress(
 				"vkDestroySurfaceKHR",
 				typeof(DestroySurfaceKHR)
 			);
@@ -2291,13 +2652,13 @@ namespace Microsoft.Xna.Framework.Graphics
 		);
 		private EnumeratePhysicalDevices vkEnumeratePhysicalDevices;
 
-		private unsafe delegate void GetPhysicalDeviceProperties(
+		private delegate void GetPhysicalDeviceProperties(
 			IntPtr physicalDevice,
 			out VkPhysicalDeviceProperties properties
 		);
 		private GetPhysicalDeviceProperties vkGetPhysicalDeviceProperties;
 
-		private unsafe delegate void GetPhysicalDeviceFeatures(
+		private delegate void GetPhysicalDeviceFeatures(
 			IntPtr physicalDevice,
 			out VkPhysicalDeviceFeatures features
 		);
@@ -2326,7 +2687,7 @@ namespace Microsoft.Xna.Framework.Graphics
 		);
 		private EnumerateDeviceExtensionProperties vkEnumerateDeviceExtensionProperties;
 
-		private unsafe delegate void DestroyDevice(
+		private delegate void DestroyDevice(
 			IntPtr device,
 			IntPtr pAllocator
 		);
@@ -2393,7 +2754,7 @@ namespace Microsoft.Xna.Framework.Graphics
 		);
 		private CreateImage vkCreateImage;
 
-		private unsafe delegate VkResult DestroyImage(
+		private delegate VkResult DestroyImage(
 			IntPtr device,
 			ulong image,
 			IntPtr pAllocator
@@ -2408,7 +2769,7 @@ namespace Microsoft.Xna.Framework.Graphics
 		);
 		private CreateImageView vkCreateImageView;
 
-		private unsafe delegate void DestroyImageView(
+		private delegate void DestroyImageView(
 			IntPtr device,
 			ulong imageView,
 			IntPtr pAllocator
@@ -2456,6 +2817,141 @@ namespace Microsoft.Xna.Framework.Graphics
 		);
 		private CreatePipelineLayout vkCreatePipelineLayout;
 
+		private unsafe delegate VkResult AllocateMemory(
+			IntPtr device,
+			VkMemoryAllocateInfo* pAllocateInfo,
+			IntPtr pAllocator,
+			out ulong memory
+		);
+		private AllocateMemory vkAllocateMemory;
+
+		private delegate VkResult BindBufferMemory(
+			IntPtr device,
+			ulong buffer,
+			ulong memory,
+			ulong memoryOffset
+		);
+		private BindBufferMemory vkBindBufferMemory;
+
+		private delegate VkResult BindImageMemory(
+			IntPtr device,
+			ulong image,
+			ulong memory,
+			ulong memoryOffset
+		);
+		private BindImageMemory vkBindImageMemory;
+
+		private unsafe delegate void CmdCopyBuffer(
+			IntPtr commandBuffer,
+			ulong srcBuffer,
+			ulong dstBuffer,
+			uint regionCount,
+			VkBufferCopy* pRegions
+		);
+		private CmdCopyBuffer vkCmdCopyBuffer;
+
+		private unsafe delegate VkResult CreateBuffer(
+			IntPtr device,
+			VkBufferCreateInfo* pCreateInfo,
+			IntPtr pAllocator,
+			out ulong buffer
+		);
+		private CreateBuffer vkCreateBuffer;
+
+		private delegate void DestroyBuffer(
+			IntPtr device,
+			ulong buffer,
+			IntPtr pAllocator
+		);
+		private DestroyBuffer vkDestroyBuffer;
+
+		private unsafe delegate VkResult FlushMappedMemoryRanges(
+			IntPtr device,
+			uint memoryRangeCount,
+			VkMappedMemoryRange* pMemoryRanges
+		);
+		private FlushMappedMemoryRanges vkFlushMappedMemoryRanges;
+
+		private delegate void FreeMemory(
+			IntPtr device,
+			ulong memory,
+			IntPtr pAllocator
+		);
+		private FreeMemory vkFreeMemory;
+
+		private delegate void GetBufferMemoryRequirements(
+			IntPtr device,
+			ulong buffer,
+			out VkMemoryRequirements memoryRequirements
+		);
+		private GetBufferMemoryRequirements vkGetBufferMemoryRequirements;
+
+		private delegate void GetImageMemoryRequirements(
+			IntPtr device,
+			ulong image,
+			out VkMemoryRequirements memoryRequirements
+		);
+		private GetImageMemoryRequirements vkGetImageMemoryRequirements;
+
+		private delegate void GetPhysicalDeviceMemoryProperties(
+			IntPtr physicalDevice,
+			out VkPhysicalDeviceMemoryProperties pMemoryProperties
+		);
+		private GetPhysicalDeviceMemoryProperties vkGetPhysicalDeviceMemoryProperties;
+
+		private unsafe delegate VkResult InvalidateMappedMemoryRanges(
+			IntPtr device,
+			uint memoryRangeCount,
+			VkMappedMemoryRange* pMemoryRanges
+		);
+		private InvalidateMappedMemoryRanges vkInvalidateMappedMemoryRanges;
+
+		private unsafe delegate VkResult MapMemory(
+			IntPtr device,
+			ulong memory,
+			ulong offset,
+			ulong size,
+			uint flags,
+			void** ppData
+		);
+		private MapMemory vkMapMemory;
+
+		private delegate void UnmapMemory(
+			IntPtr device,
+			ulong memory
+		);
+		private UnmapMemory vkUnmapMemory;
+
+		private unsafe delegate VkResult CreateFramebuffer(
+			IntPtr device,
+			VkFramebufferCreateInfo* pCreateInfo,
+			IntPtr pAllocator,
+			out ulong framebuffer
+		);
+		private CreateFramebuffer vkCreateFramebuffer;
+
+		private delegate void DestroyFramebuffer(
+			IntPtr device,
+			ulong framebuffer,
+			IntPtr pAllocator
+		);
+		private DestroyFramebuffer vkDestroyFramebuffer;
+
+		private unsafe delegate VkResult CreateRenderPass(
+			IntPtr device,
+			VkRenderPassCreateInfo* pCreateInfo,
+			IntPtr pAllocator,
+			out ulong renderPass
+		);
+		private CreateRenderPass vkCreateRenderPass;
+
+		private delegate void DestroyRenderPass(
+			IntPtr device,
+			ulong renderPass,
+			IntPtr pAllocator
+		);
+		private DestroyRenderPass vkDestroyRenderPass;
+
 		private unsafe delegate VkResult CreateDebugUtilsMessengerEXT(
 			IntPtr instance,
 			VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
@@ -2464,7 +2960,7 @@ namespace Microsoft.Xna.Framework.Graphics
 		);
 		private CreateDebugUtilsMessengerEXT vkCreateDebugUtilsMessengerEXT;
 
-		private unsafe delegate VkResult DestroyDebugUtilsMessengerEXT(
+		private delegate VkResult DestroyDebugUtilsMessengerEXT(
 			IntPtr instance,
 			ulong messenger,
 			IntPtr pAllocator
