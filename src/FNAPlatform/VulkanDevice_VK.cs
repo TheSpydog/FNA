@@ -1445,6 +1445,76 @@ namespace Microsoft.Xna.Framework.Graphics
 			VK_DEPENDENCY_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
 		}
 
+		private enum VkCommandPoolCreateFlags
+		{
+			VK_COMMAND_POOL_CREATE_TRANSIENT_BIT = 0x00000001,
+			VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT = 0x00000002,
+		}
+
+		private enum VkCommandBufferLevel
+		{
+			VK_COMMAND_BUFFER_LEVEL_PRIMARY = 0,
+			VK_COMMAND_BUFFER_LEVEL_SECONDARY = 1,
+			VK_COMMAND_BUFFER_LEVEL_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkQueryControlFlags
+		{
+			VK_QUERY_CONTROL_PRECISE_BIT = 0x00000001,
+			VK_QUERY_CONTROL_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkQueryPipelineStatisticFlags
+		{
+			VK_QUERY_PIPELINE_STATISTIC_INPUT_ASSEMBLY_VERTICES_BIT = 0x00000001,
+			VK_QUERY_PIPELINE_STATISTIC_INPUT_ASSEMBLY_PRIMITIVES_BIT = 0x00000002,
+			VK_QUERY_PIPELINE_STATISTIC_VERTEX_SHADER_INVOCATIONS_BIT = 0x00000004,
+			VK_QUERY_PIPELINE_STATISTIC_GEOMETRY_SHADER_INVOCATIONS_BIT = 0x00000008,
+			VK_QUERY_PIPELINE_STATISTIC_GEOMETRY_SHADER_PRIMITIVES_BIT = 0x00000010,
+			VK_QUERY_PIPELINE_STATISTIC_CLIPPING_INVOCATIONS_BIT = 0x00000020,
+			VK_QUERY_PIPELINE_STATISTIC_CLIPPING_PRIMITIVES_BIT = 0x00000040,
+			VK_QUERY_PIPELINE_STATISTIC_FRAGMENT_SHADER_INVOCATIONS_BIT = 0x00000080,
+			VK_QUERY_PIPELINE_STATISTIC_TESSELLATION_CONTROL_SHADER_PATCHES_BIT = 0x00000100,
+			VK_QUERY_PIPELINE_STATISTIC_TESSELLATION_EVALUATION_SHADER_INVOCATIONS_BIT = 0x00000200,
+			VK_QUERY_PIPELINE_STATISTIC_COMPUTE_SHADER_INVOCATIONS_BIT = 0x00000400,
+			VK_QUERY_PIPELINE_STATISTIC_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkCommandBufferUsageFlags
+		{
+			VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT = 0x00000001,
+			VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT = 0x00000002,
+			VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT = 0x00000004,
+			VK_COMMAND_BUFFER_USAGE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkSubpassContents
+		{
+			VK_SUBPASS_CONTENTS_INLINE = 0,
+			VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS = 1,
+		}
+
+		private enum VkCommandBufferResetFlags
+		{
+			VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT = 0x00000001,
+			VK_COMMAND_BUFFER_RESET_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkFenceCreateFlags
+		{
+			VK_FENCE_CREATE_SIGNALED_BIT = 0x00000001,
+			VK_FENCE_CREATE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
+		}
+
+		private enum VkFilter
+		{
+			VK_FILTER_NEAREST = 0,
+			VK_FILTER_LINEAR = 1,
+			VK_FILTER_CUBIC_IMG = 1000015000,
+			VK_FILTER_CUBIC_EXT = VK_FILTER_CUBIC_IMG,
+			VK_FILTER_MAX_ENUM = 0x7FFFFFFF
+		}
+
 		#endregion
 
 		#region Private Constants
@@ -1455,6 +1525,7 @@ namespace Microsoft.Xna.Framework.Graphics
 		private const int VK_MAX_MEMORY_TYPES = 32;
 		private const int VK_MAX_MEMORY_HEAPS = 16;
 		private const int VK_UUID_SIZE = 16;
+		private const uint VK_SUBPASS_EXTERNAL = (~0U);
 
 		#endregion
 
@@ -2286,6 +2357,154 @@ namespace Microsoft.Xna.Framework.Graphics
 			public VkSubpassDependency* pDependencies;
 		}
 
+		// No unions in C#, so, uh, here's this...
+		[StructLayout(LayoutKind.Explicit)]
+		private struct VkClearValue
+		{
+			[FieldOffset(0)] public VkClearColorValue color;
+			[FieldOffset(0)] public VkClearDepthStencilValue depthStencil;
+		}
+
+		[StructLayout(LayoutKind.Explicit)]
+		private unsafe struct VkClearColorValue
+		{
+			[FieldOffset(0)] public fixed float float32[4];
+			[FieldOffset(0)] public fixed int int32[4];
+			[FieldOffset(0)] public fixed uint uint32[4];
+		}
+
+		private struct VkClearDepthStencilValue
+		{
+			public float depth;
+			public uint stencil;
+		}
+
+		private struct VkClearAttachment
+		{
+			public VkImageAspectFlags aspectMask;
+			public uint colorAttachment;
+			public VkClearValue clearValue;
+		}
+
+		private struct VkClearRect
+		{
+			public VkRect2D rect;
+			public uint baseArrayLayer;
+			public uint layerCount;
+		}
+
+		private struct VkCommandPoolCreateInfo
+		{
+			public VkStructureType sType;
+			public IntPtr pNext;
+			public VkCommandPoolCreateFlags flags;
+			public uint queueFamilyIndex;
+		}
+
+		private struct VkCommandBufferAllocateInfo
+		{
+			public VkStructureType sType;
+			public IntPtr pNext;
+			public ulong commandPool;
+			public VkCommandBufferLevel level;
+			public uint commandBufferCount;
+		}
+
+		private struct VkCommandBufferInheritanceInfo
+		{
+			public VkStructureType sType;
+			public IntPtr pNext;
+			public ulong renderPass;
+			public uint subpass;
+			public ulong framebuffer;
+			public uint occlusionQueryEnable;
+			public VkQueryControlFlags queryFlags;
+			public VkQueryPipelineStatisticFlags pipelineStatistics;
+		}
+
+		private unsafe struct VkCommandBufferBeginInfo
+		{
+			public VkStructureType sType;
+			public IntPtr pNext;
+			public VkCommandBufferUsageFlags flags;
+			public VkCommandBufferInheritanceInfo* pInheritanceInfo;
+		}
+
+		private unsafe struct VkRenderPassBeginInfo
+		{
+			public VkStructureType sType;
+			public IntPtr pNext;
+			public ulong renderPass;
+			public ulong framebuffer;
+			public VkRect2D renderArea;
+			public uint clearValueCount;
+			public VkClearValue* pClearValues;
+		}
+
+		private unsafe struct VkSubmitInfo
+		{
+			public VkStructureType sType;
+			public IntPtr pNext;
+			public uint waitSemaphoreCount;
+			public ulong* pWaitSemaphores;
+			public VkPipelineStageFlags* pWaitDstStageMask;
+			public uint commandBufferCount;
+			public IntPtr* pCommandBuffers;
+			public uint signalSemaphoreCount;
+			public ulong* pSignalSemaphores;
+		}
+
+		private struct VkFenceCreateInfo
+		{
+			public VkStructureType sType;
+			public IntPtr pInfo;
+			public VkFenceCreateFlags flags;
+		}
+
+		private struct VkSemaphoreCreateInfo
+		{
+			public VkStructureType sType;
+			public IntPtr pNext;
+			public uint flags;
+		}
+
+		private unsafe struct VkPresentInfoKHR
+		{
+			public VkStructureType sType;
+			public IntPtr pNext;
+			public uint waitSemaphoreCount;
+			public ulong* pWaitSemaphores;
+			public uint swapchainCount;
+			public ulong* pSwapchains;
+			public uint* pImageIndices;
+			public VkResult* pResults;
+		}
+
+		private struct VkImageSubresourceLayers
+		{
+			public VkImageAspectFlags aspectMask;
+			public uint mipLevel;
+			public uint baseArrayLayer;
+			public uint layerCount;
+		}
+
+		private struct VkOffset3D
+		{
+			public int x;
+			public int y;
+			public int z;
+		}
+
+		private struct VkImageBlit
+		{
+			public VkImageSubresourceLayers srcSubresource;
+			public VkOffset3D srcOffsets_0;
+			public VkOffset3D srcOffsets_1;
+			public VkImageSubresourceLayers dstSubresource;
+			public VkOffset3D dstOffsets_0;
+			public VkOffset3D dstOffsets_1;
+		}
+
 		#endregion
 
 		#region UTF8 Marshaling
@@ -2558,6 +2777,54 @@ namespace Microsoft.Xna.Framework.Graphics
 				"vkDestroyRenderPass",
 				typeof(DestroyRenderPass)
 			);
+			vkCmdClearAttachments = (CmdClearAttachments) GetProcAddress(
+				"vkCmdClearAttachments",
+				typeof(CmdClearAttachments)
+			);
+			vkCreateCommandPool = (CreateCommandPool) GetProcAddress(
+				"vkCreateCommandPool",
+				typeof(CreateCommandPool)
+			);
+			vkAllocateCommandBuffers = (AllocateCommandBuffers) GetProcAddress(
+				"vkAllocateCommandBuffers",
+				typeof(AllocateCommandBuffers)
+			);
+			vkBeginCommandBuffer = (BeginCommandBuffer) GetProcAddress(
+				"vkBeginCommandBuffer",
+				typeof(BeginCommandBuffer)
+			);
+			vkCmdBeginRenderPass = (CmdBeginRenderPass) GetProcAddress(
+				"vkCmdBeginRenderPass",
+				typeof(CmdBeginRenderPass)
+			);
+			vkCmdEndRenderPass = (CmdEndRenderPass) GetProcAddress(
+				"vkCmdEndRenderPass",
+				typeof(CmdEndRenderPass)
+			);
+			vkQueueSubmit = (QueueSubmit) GetProcAddress(
+				"vkQueueSubmit",
+				typeof(QueueSubmit)
+			);
+			vkResetCommandBuffer = (ResetCommandBuffer) GetProcAddress(
+				"vkResetCommandBuffer",
+				typeof(ResetCommandBuffer)
+			);
+			vkEndCommandBuffer = (EndCommandBuffer) GetProcAddress(
+				"vkEndCommandBuffer",
+				typeof(EndCommandBuffer)
+			);
+			vkWaitForFences = (WaitForFences) GetProcAddress(
+				"vkWaitForFences",
+				typeof(WaitForFences)
+			);
+			vkCreateFence = (CreateFence) GetProcAddress(
+				"vkCreateFence",
+				typeof(CreateFence)
+			);
+			vkCreateSemaphore = (CreateSemaphore) GetProcAddress(
+				"vkCreateSemaphore",
+				typeof(CreateSemaphore)
+			);
 
 			// FIXME: Need to check for extension?
 			vkDestroySurfaceKHR = (DestroySurfaceKHR) GetProcAddress(
@@ -2584,8 +2851,6 @@ namespace Microsoft.Xna.Framework.Graphics
 				"vkGetPhysicalDeviceSurfacePresentModesKHR",
 				typeof(GetPhysicalDeviceSurfacePresentModesKHR)
 			);
-
-			// FIXME: Need to check for extension?
 			vkCreateSwapchainKHR = (CreateSwapchainKHR) GetProcAddress(
 				"vkCreateSwapchainKHR",
 				typeof(CreateSwapchainKHR)
@@ -2597,6 +2862,18 @@ namespace Microsoft.Xna.Framework.Graphics
 			vkGetSwapchainImagesKHR = (GetSwapchainImagesKHR) GetProcAddress(
 				"vkGetSwapchainImagesKHR",
 				typeof(GetSwapchainImagesKHR)
+			);
+			vkAcquireNextImageKHR = (AcquireNextImageKHR) GetProcAddress(
+				"vkAcquireNextImageKHR",
+				typeof(AcquireNextImageKHR)
+			);
+			vkQueuePresentKHR = (QueuePresentKHR) GetProcAddress(
+				"vkQueuePresentKHR",
+				typeof(QueuePresentKHR)
+			);
+			vkCmdBlitImage = (CmdBlitImage) GetProcAddress(
+				"vkCmdBlitImage",
+				typeof(CmdBlitImage)
 			);
 
 			if (validationEnabled)
@@ -2951,6 +3228,120 @@ namespace Microsoft.Xna.Framework.Graphics
 			IntPtr pAllocator
 		);
 		private DestroyRenderPass vkDestroyRenderPass;
+
+		private unsafe delegate void CmdClearAttachments(
+			IntPtr commandBuffer,
+			uint attachmentCount,
+			VkClearAttachment* pAttachments,
+			uint rectCount,
+			VkClearRect* pRects
+		);
+		private CmdClearAttachments vkCmdClearAttachments;
+
+		private unsafe delegate VkResult CreateCommandPool(
+			IntPtr device,
+			VkCommandPoolCreateInfo* pCreateInfo,
+			IntPtr pAllocator,
+			out ulong pCommandPool
+		);
+		private CreateCommandPool vkCreateCommandPool;
+
+		private unsafe delegate VkResult AllocateCommandBuffers(
+			IntPtr device,
+			VkCommandBufferAllocateInfo* pAllocateInfo,
+			IntPtr* pCommandBuffers
+		);
+		private AllocateCommandBuffers vkAllocateCommandBuffers;
+
+		private unsafe delegate VkResult BeginCommandBuffer(
+			IntPtr commandBuffer,
+			VkCommandBufferBeginInfo* pBeginInfo
+		);
+		private BeginCommandBuffer vkBeginCommandBuffer;
+
+		private unsafe delegate void CmdBeginRenderPass(
+			IntPtr commandBuffer,
+			VkRenderPassBeginInfo* pRenderPassBegin,
+			VkSubpassContents contents
+		);
+		private CmdBeginRenderPass vkCmdBeginRenderPass;
+
+		private delegate void CmdEndRenderPass(
+			IntPtr commandBuffer
+		);
+		private CmdEndRenderPass vkCmdEndRenderPass;
+
+		private unsafe delegate VkResult QueueSubmit(
+			IntPtr queue,
+			uint submitCount,
+			VkSubmitInfo* pSubmits,
+			ulong fence
+		);
+		private QueueSubmit vkQueueSubmit;
+
+		private delegate VkResult ResetCommandBuffer(
+			IntPtr commandBuffer,
+			VkCommandBufferResetFlags flags
+		);
+		private ResetCommandBuffer vkResetCommandBuffer;
+
+		private delegate VkResult EndCommandBuffer(
+			IntPtr commandBuffer
+		);
+		private EndCommandBuffer vkEndCommandBuffer;
+
+		private unsafe delegate VkResult WaitForFences(
+			IntPtr device,
+			uint fenceCount,
+			ulong* pFences,
+			uint waitAll,
+			ulong timeout
+		);
+		private WaitForFences vkWaitForFences;
+
+		private unsafe delegate VkResult CreateFence(
+			IntPtr device,
+			VkFenceCreateInfo* pCreateInfo,
+			IntPtr allocator,
+			out ulong fence
+		);
+		private CreateFence vkCreateFence;
+
+		private unsafe delegate VkResult CreateSemaphore(
+			IntPtr device,
+			VkSemaphoreCreateInfo* pCreateInfo,
+			IntPtr pAllocator,
+			out ulong pSemaphore
+		);
+		private CreateSemaphore vkCreateSemaphore;
+
+		private delegate VkResult AcquireNextImageKHR(
+			IntPtr device,
+			ulong swapchain,
+			ulong timeout,
+			ulong semaphore,
+			ulong fence,
+			out uint pImageIndex
+		);
+		private AcquireNextImageKHR vkAcquireNextImageKHR;
+
+		private unsafe delegate VkResult QueuePresentKHR(
+			IntPtr queue,
+			VkPresentInfoKHR* pPresentInfo
+		);
+		private QueuePresentKHR vkQueuePresentKHR;
+
+		private unsafe delegate void CmdBlitImage(
+			IntPtr commandBuffer,
+			ulong srcImage,
+			VkImageLayout srcImageLayout,
+			ulong dstImage,
+			VkImageLayout dstImageLayout,
+			uint regionCount,
+			VkImageBlit* pRegions,
+			VkFilter filter
+		);
+		private CmdBlitImage vkCmdBlitImage;
 
 		private unsafe delegate VkResult CreateDebugUtilsMessengerEXT(
 			IntPtr instance,
