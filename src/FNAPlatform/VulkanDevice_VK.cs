@@ -1515,6 +1515,15 @@ namespace Microsoft.Xna.Framework.Graphics
 			VK_FILTER_MAX_ENUM = 0x7FFFFFFF
 		}
 
+		private enum VkStencilFaceFlags
+		{
+			VK_STENCIL_FACE_FRONT_BIT = 0x00000001,
+			VK_STENCIL_FACE_BACK_BIT = 0x00000002,
+			VK_STENCIL_FACE_FRONT_AND_BACK = 0x00000003,
+			VK_STENCIL_FRONT_AND_BACK = VK_STENCIL_FACE_FRONT_AND_BACK,
+			VK_STENCIL_FACE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
+		}
+
 		#endregion
 
 		#region Private Constants
@@ -1549,9 +1558,9 @@ namespace Microsoft.Xna.Framework.Graphics
 			public uint flags;
 			public VkApplicationInfo* pApplicationInfo;
 			public uint enabledLayerCount;
-			public IntPtr* ppEnabledLayerNames;
+			public IntPtr ppEnabledLayerNames;
 			public uint enabledExtensionCount;
-			public IntPtr* ppEnabledExtensionNames;
+			public IntPtr ppEnabledExtensionNames;
 		}
 
 		private unsafe struct VkExtensionProperties
@@ -2526,7 +2535,7 @@ namespace Microsoft.Xna.Framework.Graphics
 		}
 
 		// Modified slightly from SDL2#
-		private unsafe string UTF8_ToManaged(IntPtr s, bool freePtr = false)
+		private unsafe string UTF8_ToManaged(IntPtr s)
 		{
 			if (s == IntPtr.Zero)
 			{
@@ -2575,7 +2584,7 @@ namespace Microsoft.Xna.Framework.Graphics
 
 		#endregion
 
-		#region Private Vulkan Entry Points
+		#region Adapted Macros
 
 		private uint VK_MAKE_VERSION(uint major, uint minor, uint patch)
 		{
@@ -2599,10 +2608,14 @@ namespace Microsoft.Xna.Framework.Graphics
 
 		private string VK_GetVersionString(uint version)
 		{
-			return  VK_VERSION_MAJOR(version) + "."
+			return VK_VERSION_MAJOR(version) + "."
 				+ VK_VERSION_MINOR(version) + "."
 				+ VK_VERSION_PATCH(version);
 		}
+
+		#endregion
+
+		#region Private Vulkan Entry Loaders
 
 		private Delegate GetProcAddress(string name, Type type)
 		{
@@ -2617,466 +2630,507 @@ namespace Microsoft.Xna.Framework.Graphics
 		public void LoadGlobalEntryPoints()
 		{
 			// First load the function loader
-			vkGetInstanceProcAddr = (GetInstanceProcAddr) Marshal.GetDelegateForFunctionPointer(
+			vkGetInstanceProcAddr = (PFN_GetInstanceProcAddr) Marshal.GetDelegateForFunctionPointer(
 				SDL.SDL_Vulkan_GetVkGetInstanceProcAddr(),
-				typeof(GetInstanceProcAddr)
+				typeof(PFN_GetInstanceProcAddr)
 			);
 
 			// Now load global entry points
-			vkCreateInstance = (CreateInstance) GetProcAddress(
+			vkCreateInstance = (PFN_CreateInstance) GetProcAddress(
 				"vkCreateInstance",
-				typeof(CreateInstance)
+				typeof(PFN_CreateInstance)
 			);
-			vkEnumerateInstanceExtensionProperties = (EnumerateInstanceExtensionProperties) GetProcAddress(
+			vkEnumerateInstanceExtensionProperties = (PFN_EnumerateInstanceExtensionProperties) GetProcAddress(
 				"vkEnumerateInstanceExtensionProperties",
-				typeof(EnumerateInstanceExtensionProperties)
+				typeof(PFN_EnumerateInstanceExtensionProperties)
 			);
-			vkEnumerateInstanceLayerProperties = (EnumerateInstanceLayerProperties) GetProcAddress(
+			vkEnumerateInstanceLayerProperties = (PFN_EnumerateInstanceLayerProperties) GetProcAddress(
 				"vkEnumerateInstanceLayerProperties",
-				typeof(EnumerateInstanceLayerProperties)
+				typeof(PFN_EnumerateInstanceLayerProperties)
 			);
 		}
 
 		public void LoadInstanceEntryPoints()
 		{
-			// FIXME: Clean all this up
-
-			vkDestroyInstance = (DestroyInstance) GetProcAddress(
+			// Instance
+			vkDestroyInstance = (PFN_DestroyInstance) GetProcAddress(
 				"vkDestroyInstance",
-				typeof(DestroyInstance)
+				typeof(PFN_DestroyInstance)
 			);
-			vkEnumeratePhysicalDevices = (EnumeratePhysicalDevices) GetProcAddress(
+
+			// Physical Device
+			vkEnumeratePhysicalDevices = (PFN_EnumeratePhysicalDevices) GetProcAddress(
 				"vkEnumeratePhysicalDevices",
-				typeof(EnumeratePhysicalDevices)
+				typeof(PFN_EnumeratePhysicalDevices)
 			);
-			vkGetPhysicalDeviceProperties = (GetPhysicalDeviceProperties) GetProcAddress(
+			vkGetPhysicalDeviceProperties = (PFN_GetPhysicalDeviceProperties) GetProcAddress(
 				"vkGetPhysicalDeviceProperties",
-				typeof(GetPhysicalDeviceProperties)
+				typeof(PFN_GetPhysicalDeviceProperties)
 			);
-			vkGetPhysicalDeviceFeatures = (GetPhysicalDeviceFeatures) GetProcAddress(
+			vkGetPhysicalDeviceFeatures = (PFN_GetPhysicalDeviceFeatures) GetProcAddress(
 				"vkGetPhysicalDeviceFeatures",
-				typeof(GetPhysicalDeviceFeatures)
+				typeof(PFN_GetPhysicalDeviceFeatures)
 			);
-			vkGetPhysicalDeviceQueueFamilyProperties = (GetPhysicalDeviceQueueFamilyProperties) GetProcAddress(
+			vkGetPhysicalDeviceQueueFamilyProperties = (PFN_GetPhysicalDeviceQueueFamilyProperties) GetProcAddress(
 				"vkGetPhysicalDeviceQueueFamilyProperties",
-				typeof(GetPhysicalDeviceQueueFamilyProperties)
+				typeof(PFN_GetPhysicalDeviceQueueFamilyProperties)
 			);
-			vkCreateDevice = (CreateDevice) GetProcAddress(
-				"vkCreateDevice",
-				typeof(CreateDevice)
-			);
-			vkDestroyDevice = (DestroyDevice) GetProcAddress(
-				"vkDestroyDevice",
-				typeof(DestroyDevice)
-			);
-			vkEnumerateDeviceExtensionProperties = (EnumerateDeviceExtensionProperties) GetProcAddress(
-				"vkEnumerateDeviceExtensionProperties",
-				typeof(EnumerateDeviceExtensionProperties)
-			);
-			vkGetDeviceQueue = (GetDeviceQueue) GetProcAddress(
-				"vkGetDeviceQueue",
-				typeof(GetDeviceQueue)
-			);
-			vkGetPhysicalDeviceFormatProperties = (GetPhysicalDeviceFormatProperties) GetProcAddress(
+			vkGetPhysicalDeviceFormatProperties = (PFN_GetPhysicalDeviceFormatProperties) GetProcAddress(
 				"vkGetPhysicalDeviceFormatProperties",
-				typeof(GetPhysicalDeviceFormatProperties)
+				typeof(PFN_GetPhysicalDeviceFormatProperties)
 			);
-			vkCreateImage = (CreateImage) GetProcAddress(
-				"vkCreateImage",
-				typeof(CreateImage)
-			);
-			vkDestroyImage = (DestroyImage) GetProcAddress(
-				"vkDestroyImage",
-				typeof(DestroyImage)
-			);
-			vkCreateImageView = (CreateImageView) GetProcAddress(
-				"vkCreateImageView",
-				typeof(CreateImageView)
-			);
-			vkDestroyImageView = (DestroyImageView) GetProcAddress(
-				"vkDestroyImageView",
-				typeof(DestroyImageView)
-			);
-			vkCreateGraphicsPipelines = (CreateGraphicsPipelines) GetProcAddress(
-				"vkCreateGraphicsPipelines",
-				typeof(CreateGraphicsPipelines)
-			);
-			vkCreatePipelineLayout = (CreatePipelineLayout) GetProcAddress(
-				"vkCreatePipelineLayout",
-				typeof(CreatePipelineLayout)
-			);
-			vkAllocateMemory = (AllocateMemory) GetProcAddress(
-				"vkAllocateMemory",
-				typeof(AllocateMemory)
-			);
-			vkBindBufferMemory = (BindBufferMemory) GetProcAddress(
-				"vkBindBufferMemory",
-				typeof(BindBufferMemory)
-			);
-			vkBindImageMemory = (BindImageMemory) GetProcAddress(
-				"vkBindImageMemory",
-				typeof(BindImageMemory)
-			);
-			vkCmdCopyBuffer = (CmdCopyBuffer) GetProcAddress(
-				"vkCmdCopyBuffer",
-				typeof(CmdCopyBuffer)
-			);
-			vkCreateBuffer = (CreateBuffer) GetProcAddress(
-				"vkCreateBuffer",
-				typeof(CreateBuffer)
-			);
-			vkDestroyBuffer = (DestroyBuffer) GetProcAddress(
-				"vkDestroyBuffer",
-				typeof(DestroyBuffer)
-			);
-			vkFlushMappedMemoryRanges = (FlushMappedMemoryRanges) GetProcAddress(
-				"vkFlushMappedMemoryRanges",
-				typeof(FlushMappedMemoryRanges)
-			);
-			vkFreeMemory = (FreeMemory) GetProcAddress(
-				"vkFreeMemory",
-				typeof(FreeMemory)
-			);
-			vkGetBufferMemoryRequirements = (GetBufferMemoryRequirements) GetProcAddress(
-				"vkGetBufferMemoryRequirements",
-				typeof(GetBufferMemoryRequirements)
-			);
-			vkGetImageMemoryRequirements = (GetImageMemoryRequirements) GetProcAddress(
-				"vkGetImageMemoryRequirements",
-				typeof(GetImageMemoryRequirements)
-			);
-			vkGetPhysicalDeviceMemoryProperties = (GetPhysicalDeviceMemoryProperties) GetProcAddress(
+			vkGetPhysicalDeviceMemoryProperties = (PFN_GetPhysicalDeviceMemoryProperties) GetProcAddress(
 				"vkGetPhysicalDeviceMemoryProperties",
-				typeof(GetPhysicalDeviceMemoryProperties)
+				typeof(PFN_GetPhysicalDeviceMemoryProperties)
 			);
-			vkInvalidateMappedMemoryRanges = (InvalidateMappedMemoryRanges) GetProcAddress(
+
+			// Logical Device
+			vkCreateDevice = (PFN_CreateDevice) GetProcAddress(
+				"vkCreateDevice",
+				typeof(PFN_CreateDevice)
+			);
+			vkDestroyDevice = (PFN_DestroyDevice) GetProcAddress(
+				"vkDestroyDevice",
+				typeof(PFN_DestroyDevice)
+			);
+			vkEnumerateDeviceExtensionProperties = (PFN_EnumerateDeviceExtensionProperties) GetProcAddress(
+				"vkEnumerateDeviceExtensionProperties",
+				typeof(PFN_EnumerateDeviceExtensionProperties)
+			);
+			vkGetDeviceQueue = (PFN_GetDeviceQueue) GetProcAddress(
+				"vkGetDeviceQueue",
+				typeof(PFN_GetDeviceQueue)
+			);
+
+			// Image / Image View
+			vkCreateImage = (PFN_CreateImage) GetProcAddress(
+				"vkCreateImage",
+				typeof(PFN_CreateImage)
+			);
+			vkDestroyImage = (PFN_DestroyImage) GetProcAddress(
+				"vkDestroyImage",
+				typeof(PFN_DestroyImage)
+			);
+			vkCreateImageView = (PFN_CreateImageView) GetProcAddress(
+				"vkCreateImageView",
+				typeof(PFN_CreateImageView)
+			);
+			vkDestroyImageView = (PFN_DestroyImageView) GetProcAddress(
+				"vkDestroyImageView",
+				typeof(PFN_DestroyImageView)
+			);
+			vkBindImageMemory = (PFN_BindImageMemory) GetProcAddress(
+				"vkBindImageMemory",
+				typeof(PFN_BindImageMemory)
+			);
+			vkGetImageMemoryRequirements = (PFN_GetImageMemoryRequirements) GetProcAddress(
+				"vkGetImageMemoryRequirements",
+				typeof(PFN_GetImageMemoryRequirements)
+			);
+
+			// Buffers
+			vkCreateBuffer = (PFN_CreateBuffer) GetProcAddress(
+				"vkCreateBuffer",
+				typeof(PFN_CreateBuffer)
+			);
+			vkDestroyBuffer = (PFN_DestroyBuffer) GetProcAddress(
+				"vkDestroyBuffer",
+				typeof(PFN_DestroyBuffer)
+			);
+			vkBindBufferMemory = (PFN_BindBufferMemory) GetProcAddress(
+				"vkBindBufferMemory",
+				typeof(PFN_BindBufferMemory)
+			);
+			vkGetBufferMemoryRequirements = (PFN_GetBufferMemoryRequirements) GetProcAddress(
+				"vkGetBufferMemoryRequirements",
+				typeof(PFN_GetBufferMemoryRequirements)
+			);
+
+			// Pipelines
+			vkCreateGraphicsPipelines = (PFN_CreateGraphicsPipelines) GetProcAddress(
+				"vkCreateGraphicsPipelines",
+				typeof(PFN_CreateGraphicsPipelines)
+			);
+			vkCreatePipelineLayout = (PFN_CreatePipelineLayout) GetProcAddress(
+				"vkCreatePipelineLayout",
+				typeof(PFN_CreatePipelineLayout)
+			);
+
+			// Memory
+			vkAllocateMemory = (PFN_AllocateMemory) GetProcAddress(
+				"vkAllocateMemory",
+				typeof(PFN_AllocateMemory)
+			);
+			vkFlushMappedMemoryRanges = (PFN_FlushMappedMemoryRanges) GetProcAddress(
+				"vkFlushMappedMemoryRanges",
+				typeof(PFN_FlushMappedMemoryRanges)
+			);
+			vkFreeMemory = (PFN_FreeMemory) GetProcAddress(
+				"vkFreeMemory",
+				typeof(PFN_FreeMemory)
+			);
+			vkInvalidateMappedMemoryRanges = (PFN_InvalidateMappedMemoryRanges) GetProcAddress(
 				"vkInvalidateMappedMemoryRanges",
-				typeof(InvalidateMappedMemoryRanges)
+				typeof(PFN_InvalidateMappedMemoryRanges)
 			);
-			vkMapMemory = (MapMemory) GetProcAddress(
+			vkMapMemory = (PFN_MapMemory) GetProcAddress(
 				"vkMapMemory",
-				typeof(MapMemory)
+				typeof(PFN_MapMemory)
 			);
-			vkUnmapMemory = (UnmapMemory) GetProcAddress(
+			vkUnmapMemory = (PFN_UnmapMemory) GetProcAddress(
 				"vkUnmapMemory",
-				typeof(UnmapMemory)
+				typeof(PFN_UnmapMemory)
 			);
-			vkCreateFramebuffer = (CreateFramebuffer) GetProcAddress(
+
+			// Framebuffer
+			vkCreateFramebuffer = (PFN_CreateFramebuffer) GetProcAddress(
 				"vkCreateFramebuffer",
-				typeof(CreateFramebuffer)
+				typeof(PFN_CreateFramebuffer)
 			);
-			vkDestroyFramebuffer = (DestroyFramebuffer) GetProcAddress(
+			vkDestroyFramebuffer = (PFN_DestroyFramebuffer) GetProcAddress(
 				"vkDestroyFramebuffer",
-				typeof(DestroyFramebuffer)
+				typeof(PFN_DestroyFramebuffer)
 			);
-			vkCreateRenderPass = (CreateRenderPass) GetProcAddress(
+
+			// Render Pass
+			vkCreateRenderPass = (PFN_CreateRenderPass) GetProcAddress(
 				"vkCreateRenderPass",
-				typeof(CreateRenderPass)
+				typeof(PFN_CreateRenderPass)
 			);
-			vkDestroyRenderPass = (DestroyRenderPass) GetProcAddress(
+			vkDestroyRenderPass = (PFN_DestroyRenderPass) GetProcAddress(
 				"vkDestroyRenderPass",
-				typeof(DestroyRenderPass)
+				typeof(PFN_DestroyRenderPass)
 			);
-			vkCmdClearAttachments = (CmdClearAttachments) GetProcAddress(
-				"vkCmdClearAttachments",
-				typeof(CmdClearAttachments)
-			);
-			vkCreateCommandPool = (CreateCommandPool) GetProcAddress(
+
+			// Command Buffers / Pools
+			vkCreateCommandPool = (PFN_CreateCommandPool) GetProcAddress(
 				"vkCreateCommandPool",
-				typeof(CreateCommandPool)
+				typeof(PFN_CreateCommandPool)
 			);
-			vkAllocateCommandBuffers = (AllocateCommandBuffers) GetProcAddress(
+			vkAllocateCommandBuffers = (PFN_AllocateCommandBuffers) GetProcAddress(
 				"vkAllocateCommandBuffers",
-				typeof(AllocateCommandBuffers)
+				typeof(PFN_AllocateCommandBuffers)
 			);
-			vkBeginCommandBuffer = (BeginCommandBuffer) GetProcAddress(
+			vkBeginCommandBuffer = (PFN_BeginCommandBuffer) GetProcAddress(
 				"vkBeginCommandBuffer",
-				typeof(BeginCommandBuffer)
+				typeof(PFN_BeginCommandBuffer)
 			);
-			vkCmdBeginRenderPass = (CmdBeginRenderPass) GetProcAddress(
-				"vkCmdBeginRenderPass",
-				typeof(CmdBeginRenderPass)
-			);
-			vkCmdEndRenderPass = (CmdEndRenderPass) GetProcAddress(
-				"vkCmdEndRenderPass",
-				typeof(CmdEndRenderPass)
-			);
-			vkQueueSubmit = (QueueSubmit) GetProcAddress(
-				"vkQueueSubmit",
-				typeof(QueueSubmit)
-			);
-			vkResetCommandBuffer = (ResetCommandBuffer) GetProcAddress(
+			vkResetCommandBuffer = (PFN_ResetCommandBuffer) GetProcAddress(
 				"vkResetCommandBuffer",
-				typeof(ResetCommandBuffer)
+				typeof(PFN_ResetCommandBuffer)
 			);
-			vkEndCommandBuffer = (EndCommandBuffer) GetProcAddress(
+			vkEndCommandBuffer = (PFN_EndCommandBuffer) GetProcAddress(
 				"vkEndCommandBuffer",
-				typeof(EndCommandBuffer)
+				typeof(PFN_EndCommandBuffer)
 			);
-			vkWaitForFences = (WaitForFences) GetProcAddress(
+
+			// Queues
+			vkQueueSubmit = (PFN_QueueSubmit) GetProcAddress(
+				"vkQueueSubmit",
+				typeof(PFN_QueueSubmit)
+			);
+
+			// Fence / Semaphore
+			vkWaitForFences = (PFN_WaitForFences) GetProcAddress(
 				"vkWaitForFences",
-				typeof(WaitForFences)
+				typeof(PFN_WaitForFences)
 			);
-			vkCreateFence = (CreateFence) GetProcAddress(
+			vkCreateFence = (PFN_CreateFence) GetProcAddress(
 				"vkCreateFence",
-				typeof(CreateFence)
+				typeof(PFN_CreateFence)
 			);
-			vkCreateSemaphore = (CreateSemaphore) GetProcAddress(
+			vkCreateSemaphore = (PFN_CreateSemaphore) GetProcAddress(
 				"vkCreateSemaphore",
-				typeof(CreateSemaphore)
+				typeof(PFN_CreateSemaphore)
 			);
 
-			// FIXME: Need to check for extension?
-			vkDestroySurfaceKHR = (DestroySurfaceKHR) GetProcAddress(
-				"vkDestroySurfaceKHR",
-				typeof(DestroySurfaceKHR)
+			// Commands
+			vkCmdCopyBuffer = (PFN_CmdCopyBuffer) GetProcAddress(
+				"vkCmdCopyBuffer",
+				typeof(PFN_CmdCopyBuffer)
 			);
-			vkGetPhysicalDeviceSurfaceSupportKHR = (GetPhysicalDeviceSurfaceSupportKHR) GetProcAddress(
-				"vkGetPhysicalDeviceSurfaceSupportKHR",
-				typeof(GetPhysicalDeviceSurfaceSupportKHR)
+			vkCmdClearAttachments = (PFN_CmdClearAttachments) GetProcAddress(
+				"vkCmdClearAttachments",
+				typeof(PFN_CmdClearAttachments)
 			);
-			vkGetPhysicalDeviceSurfaceCapabilitiesKHR = (GetPhysicalDeviceSurfaceCapabilitiesKHR) GetProcAddress(
-				"vkGetPhysicalDeviceSurfaceCapabilitiesKHR",
-				typeof(GetPhysicalDeviceSurfaceCapabilitiesKHR)
+			vkCmdBeginRenderPass = (PFN_CmdBeginRenderPass) GetProcAddress(
+				"vkCmdBeginRenderPass",
+				typeof(PFN_CmdBeginRenderPass)
 			);
-			vkGetPhysicalDeviceSurfaceFormatsKHR = (GetPhysicalDeviceSurfaceFormatsKHR) GetProcAddress(
-				"vkGetPhysicalDeviceSurfaceFormatsKHR",
-				typeof(GetPhysicalDeviceSurfaceFormatsKHR)
+			vkCmdEndRenderPass = (PFN_CmdEndRenderPass) GetProcAddress(
+				"vkCmdEndRenderPass",
+				typeof(PFN_CmdEndRenderPass)
 			);
-			vkGetPhysicalDeviceSurfaceFormatsKHR = (GetPhysicalDeviceSurfaceFormatsKHR) GetProcAddress(
-				"vkGetPhysicalDeviceSurfaceFormatsKHR",
-				typeof(GetPhysicalDeviceSurfaceFormatsKHR)
-			);
-			vkGetPhysicalDeviceSurfacePresentModesKHR = (GetPhysicalDeviceSurfacePresentModesKHR) GetProcAddress(
-				"vkGetPhysicalDeviceSurfacePresentModesKHR",
-				typeof(GetPhysicalDeviceSurfacePresentModesKHR)
-			);
-			vkCreateSwapchainKHR = (CreateSwapchainKHR) GetProcAddress(
-				"vkCreateSwapchainKHR",
-				typeof(CreateSwapchainKHR)
-			);
-			vkDestroySwapchainKHR = (DestroySwapchainKHR) GetProcAddress(
-				"vkDestroySwapchainKHR",
-				typeof(DestroySwapchainKHR)
-			);
-			vkGetSwapchainImagesKHR = (GetSwapchainImagesKHR) GetProcAddress(
-				"vkGetSwapchainImagesKHR",
-				typeof(GetSwapchainImagesKHR)
-			);
-			vkAcquireNextImageKHR = (AcquireNextImageKHR) GetProcAddress(
-				"vkAcquireNextImageKHR",
-				typeof(AcquireNextImageKHR)
-			);
-			vkQueuePresentKHR = (QueuePresentKHR) GetProcAddress(
-				"vkQueuePresentKHR",
-				typeof(QueuePresentKHR)
-			);
-			vkCmdBlitImage = (CmdBlitImage) GetProcAddress(
+			vkCmdBlitImage = (PFN_CmdBlitImage) GetProcAddress(
 				"vkCmdBlitImage",
-				typeof(CmdBlitImage)
+				typeof(PFN_CmdBlitImage)
+			);
+			vkCmdSetBlendConstants = (PFN_CmdSetBlendConstants) GetProcAddress(
+				"vkCmdSetBlendConstants",
+				typeof(PFN_CmdSetBlendConstants)
+			);
+			vkCmdSetStencilReference = (PFN_CmdSetStencilReference) GetProcAddress(
+				"vkCmdSetStencilReference",
+				typeof(PFN_CmdSetStencilReference)
 			);
 
+			// Swapchain Extension
+
+			/* If we got this far into the program,
+			 * the instance must have the VK_KHR_surface
+			 * extension. That implies the existence of
+			 * VK_KHR_swapchain so we don't need to check!
+			 * 
+			 * -caleb
+			 */
+
+			vkDestroySurfaceKHR = (PFN_DestroySurfaceKHR) GetProcAddress(
+				"vkDestroySurfaceKHR",
+				typeof(PFN_DestroySurfaceKHR)
+			);
+			vkGetPhysicalDeviceSurfaceSupportKHR = (PFN_GetPhysicalDeviceSurfaceSupportKHR) GetProcAddress(
+				"vkGetPhysicalDeviceSurfaceSupportKHR",
+				typeof(PFN_GetPhysicalDeviceSurfaceSupportKHR)
+			);
+			vkGetPhysicalDeviceSurfaceCapabilitiesKHR = (PFN_GetPhysicalDeviceSurfaceCapabilitiesKHR) GetProcAddress(
+				"vkGetPhysicalDeviceSurfaceCapabilitiesKHR",
+				typeof(PFN_GetPhysicalDeviceSurfaceCapabilitiesKHR)
+			);
+			vkGetPhysicalDeviceSurfaceFormatsKHR = (PFN_GetPhysicalDeviceSurfaceFormatsKHR) GetProcAddress(
+				"vkGetPhysicalDeviceSurfaceFormatsKHR",
+				typeof(PFN_GetPhysicalDeviceSurfaceFormatsKHR)
+			);
+			vkGetPhysicalDeviceSurfacePresentModesKHR = (PFN_GetPhysicalDeviceSurfacePresentModesKHR) GetProcAddress(
+				"vkGetPhysicalDeviceSurfacePresentModesKHR",
+				typeof(PFN_GetPhysicalDeviceSurfacePresentModesKHR)
+			);
+			vkCreateSwapchainKHR = (PFN_CreateSwapchainKHR) GetProcAddress(
+				"vkCreateSwapchainKHR",
+				typeof(PFN_CreateSwapchainKHR)
+			);
+			vkDestroySwapchainKHR = (PFN_DestroySwapchainKHR) GetProcAddress(
+				"vkDestroySwapchainKHR",
+				typeof(PFN_DestroySwapchainKHR)
+			);
+			vkGetSwapchainImagesKHR = (PFN_GetSwapchainImagesKHR) GetProcAddress(
+				"vkGetSwapchainImagesKHR",
+				typeof(PFN_GetSwapchainImagesKHR)
+			);
+			vkAcquireNextImageKHR = (PFN_AcquireNextImageKHR) GetProcAddress(
+				"vkAcquireNextImageKHR",
+				typeof(PFN_AcquireNextImageKHR)
+			);
+			vkQueuePresentKHR = (PFN_QueuePresentKHR) GetProcAddress(
+				"vkQueuePresentKHR",
+				typeof(PFN_QueuePresentKHR)
+			);
+
+			// Debug Utils Extension
 			if (validationEnabled)
 			{
-				vkCreateDebugUtilsMessengerEXT = (CreateDebugUtilsMessengerEXT) GetProcAddress(
+				vkCreateDebugUtilsMessengerEXT = (PFN_CreateDebugUtilsMessengerEXT) GetProcAddress(
 					"vkCreateDebugUtilsMessengerEXT",
-					typeof(CreateDebugUtilsMessengerEXT)
+					typeof(PFN_CreateDebugUtilsMessengerEXT)
 				);
 
-				vkDestroyDebugUtilsMessengerEXT = (DestroyDebugUtilsMessengerEXT) GetProcAddress(
+				vkDestroyDebugUtilsMessengerEXT = (PFN_DestroyDebugUtilsMessengerEXT) GetProcAddress(
 					"vkDestroyDebugUtilsMessengerEXT",
-					typeof(DestroyDebugUtilsMessengerEXT)
+					typeof(PFN_DestroyDebugUtilsMessengerEXT)
 				);
 			}
 		}
 
-		private delegate IntPtr GetInstanceProcAddr(
+		#endregion
+
+		#region Private Vulkan Entry Points
+
+		private delegate IntPtr PFN_GetInstanceProcAddr(
 			IntPtr instance,
 			string name
 		);
-		private GetInstanceProcAddr vkGetInstanceProcAddr;
+		private PFN_GetInstanceProcAddr vkGetInstanceProcAddr;
 
-		private unsafe delegate VkResult CreateInstance(
-			VkInstanceCreateInfo* pCreateInfo,
+		private delegate VkResult PFN_CreateInstance(
+			ref VkInstanceCreateInfo pCreateInfo,
 			IntPtr pAllocator,
 			out IntPtr pInstance
 		);
-		private CreateInstance vkCreateInstance;
+		private PFN_CreateInstance vkCreateInstance;
 
-		private delegate void DestroyInstance(
+		private delegate void PFN_DestroyInstance(
 			IntPtr instance,
 			IntPtr pAllocator
 		);
-		private DestroyInstance vkDestroyInstance;
+		private PFN_DestroyInstance vkDestroyInstance;
 
-		private unsafe delegate VkResult EnumerateInstanceExtensionProperties(
+		private unsafe delegate VkResult PFN_EnumerateInstanceExtensionProperties(
 			string layerName,
 			out uint propertyCount,
 			VkExtensionProperties* pProperties
 		);
-		private EnumerateInstanceExtensionProperties vkEnumerateInstanceExtensionProperties;
+		private PFN_EnumerateInstanceExtensionProperties vkEnumerateInstanceExtensionProperties;
 
-		private unsafe delegate VkResult EnumerateInstanceLayerProperties(
+		private unsafe delegate VkResult PFN_EnumerateInstanceLayerProperties(
 			out uint propertyCount,
 			VkLayerProperties* pProperties
 		);
-		private EnumerateInstanceLayerProperties vkEnumerateInstanceLayerProperties;
+		private PFN_EnumerateInstanceLayerProperties vkEnumerateInstanceLayerProperties;
 
-		private unsafe delegate VkResult EnumeratePhysicalDevices(
+		private unsafe delegate VkResult PFN_EnumeratePhysicalDevices(
 			IntPtr instance,
 			out uint physicalDeviceCount,
 			IntPtr* physicalDevices
 		);
-		private EnumeratePhysicalDevices vkEnumeratePhysicalDevices;
+		private PFN_EnumeratePhysicalDevices vkEnumeratePhysicalDevices;
 
-		private delegate void GetPhysicalDeviceProperties(
+		private delegate void PFN_GetPhysicalDeviceProperties(
 			IntPtr physicalDevice,
 			out VkPhysicalDeviceProperties properties
 		);
-		private GetPhysicalDeviceProperties vkGetPhysicalDeviceProperties;
+		private PFN_GetPhysicalDeviceProperties vkGetPhysicalDeviceProperties;
 
-		private delegate void GetPhysicalDeviceFeatures(
+		private delegate void PFN_GetPhysicalDeviceFeatures(
 			IntPtr physicalDevice,
 			out VkPhysicalDeviceFeatures features
 		);
-		private GetPhysicalDeviceFeatures vkGetPhysicalDeviceFeatures;
+		private PFN_GetPhysicalDeviceFeatures vkGetPhysicalDeviceFeatures;
 
-		private unsafe delegate void GetPhysicalDeviceQueueFamilyProperties(
+		private unsafe delegate void PFN_GetPhysicalDeviceQueueFamilyProperties(
 			IntPtr physicalDevice,
 			out uint queueFamilyPropertyCount,
 			VkQueueFamilyProperties* queueFamilies
 		);
-		private GetPhysicalDeviceQueueFamilyProperties vkGetPhysicalDeviceQueueFamilyProperties;
+		private PFN_GetPhysicalDeviceQueueFamilyProperties vkGetPhysicalDeviceQueueFamilyProperties;
 
-		private unsafe delegate VkResult CreateDevice(
+		private delegate VkResult PFN_CreateDevice(
 			IntPtr physicalDevice,
-			VkDeviceCreateInfo* pCreateInfo,
+			ref VkDeviceCreateInfo pCreateInfo,
 			IntPtr pAllocator,
 			out IntPtr device
 		);
-		private CreateDevice vkCreateDevice;
+		private PFN_CreateDevice vkCreateDevice;
 
-		private unsafe delegate VkResult EnumerateDeviceExtensionProperties(
+		private unsafe delegate VkResult PFN_EnumerateDeviceExtensionProperties(
 			IntPtr physicalDevice,
 			IntPtr pLayerName,
 			out uint propertyCount,
 			VkExtensionProperties* properties
 		);
-		private EnumerateDeviceExtensionProperties vkEnumerateDeviceExtensionProperties;
+		private PFN_EnumerateDeviceExtensionProperties vkEnumerateDeviceExtensionProperties;
 
-		private delegate void DestroyDevice(
+		private delegate void PFN_DestroyDevice(
 			IntPtr device,
 			IntPtr pAllocator
 		);
-		private DestroyDevice vkDestroyDevice;
+		private PFN_DestroyDevice vkDestroyDevice;
 
-		private delegate void GetDeviceQueue(
+		private delegate void PFN_GetDeviceQueue(
 			IntPtr device,
 			uint queueFamilyIndex,
 			uint queueIndex,
 			out IntPtr pQueue
 		);
-		private GetDeviceQueue vkGetDeviceQueue;
+		private PFN_GetDeviceQueue vkGetDeviceQueue;
 
-		private delegate VkResult GetPhysicalDeviceSurfaceSupportKHR(
+		private delegate VkResult PFN_GetPhysicalDeviceSurfaceSupportKHR(
 			IntPtr physicalDevice,
 			uint queueFamilyIndex,
 			ulong surface,
 			out uint pSupported
 		);
-		private GetPhysicalDeviceSurfaceSupportKHR vkGetPhysicalDeviceSurfaceSupportKHR;
+		private PFN_GetPhysicalDeviceSurfaceSupportKHR vkGetPhysicalDeviceSurfaceSupportKHR;
 
-		private delegate VkResult GetPhysicalDeviceSurfaceCapabilitiesKHR(
+		private delegate VkResult PFN_GetPhysicalDeviceSurfaceCapabilitiesKHR(
 			IntPtr physicalDevice,
 			ulong surface,
 			out VkSurfaceCapabilitiesKHR surfaceCapabilities
 		);
-		private GetPhysicalDeviceSurfaceCapabilitiesKHR vkGetPhysicalDeviceSurfaceCapabilitiesKHR;
+		private PFN_GetPhysicalDeviceSurfaceCapabilitiesKHR vkGetPhysicalDeviceSurfaceCapabilitiesKHR;
 
-		private unsafe delegate VkResult GetPhysicalDeviceSurfaceFormatsKHR(
+		private unsafe delegate VkResult PFN_GetPhysicalDeviceSurfaceFormatsKHR(
 			IntPtr physicalDevice,
 			ulong surface,
 			out uint surfaceFormatCount,
 			VkSurfaceFormatKHR* pSurfaceFormats
 		);
-		private GetPhysicalDeviceSurfaceFormatsKHR vkGetPhysicalDeviceSurfaceFormatsKHR;
+		private PFN_GetPhysicalDeviceSurfaceFormatsKHR vkGetPhysicalDeviceSurfaceFormatsKHR;
 
-		private unsafe delegate VkResult GetPhysicalDeviceSurfacePresentModesKHR(
+		private unsafe delegate VkResult PFN_GetPhysicalDeviceSurfacePresentModesKHR(
 			IntPtr physicalDevice,
 			ulong surface,
 			out uint pPresentModeCount,
 			VkPresentModeKHR* pPresentModes
 		);
-		private GetPhysicalDeviceSurfacePresentModesKHR vkGetPhysicalDeviceSurfacePresentModesKHR;
+		private PFN_GetPhysicalDeviceSurfacePresentModesKHR vkGetPhysicalDeviceSurfacePresentModesKHR;
 
-		private delegate void GetPhysicalDeviceFormatProperties(
+		private delegate void PFN_GetPhysicalDeviceFormatProperties(
 			IntPtr physicalDevice,
 			VkFormat format,
 			out VkFormatProperties properties
 		);
-		private GetPhysicalDeviceFormatProperties vkGetPhysicalDeviceFormatProperties;
+		private PFN_GetPhysicalDeviceFormatProperties vkGetPhysicalDeviceFormatProperties;
 
-		private delegate void DestroySurfaceKHR(
+		private delegate void PFN_DestroySurfaceKHR(
 			IntPtr instance,
 			ulong surface,
 			IntPtr pAllocator
 		);
-		private DestroySurfaceKHR vkDestroySurfaceKHR;
+		private PFN_DestroySurfaceKHR vkDestroySurfaceKHR;
 
-		private unsafe delegate VkResult CreateImage(
+		private delegate VkResult PFN_CreateImage(
 			IntPtr device,
-			VkImageCreateInfo* pCreateInfo,
+			ref VkImageCreateInfo pCreateInfo,
 			IntPtr pAllocator,
 			out ulong image
 		);
-		private CreateImage vkCreateImage;
+		private PFN_CreateImage vkCreateImage;
 
-		private delegate VkResult DestroyImage(
+		private delegate VkResult PFN_DestroyImage(
 			IntPtr device,
 			ulong image,
 			IntPtr pAllocator
 		);
-		private DestroyImage vkDestroyImage;
+		private PFN_DestroyImage vkDestroyImage;
 
-		private unsafe delegate VkResult CreateImageView(
+		private delegate VkResult PFN_CreateImageView(
 			IntPtr device,
-			VkImageViewCreateInfo* pCreateInfo,
+			ref VkImageViewCreateInfo pCreateInfo,
 			IntPtr pAllocator,
 			out ulong view
 		);
-		private CreateImageView vkCreateImageView;
+		private PFN_CreateImageView vkCreateImageView;
 
-		private delegate void DestroyImageView(
+		private delegate void PFN_DestroyImageView(
 			IntPtr device,
 			ulong imageView,
 			IntPtr pAllocator
 		);
-		private DestroyImageView vkDestroyImageView;
+		private PFN_DestroyImageView vkDestroyImageView;
 
-		private unsafe delegate VkResult CreateSwapchainKHR(
+		private unsafe delegate VkResult PFN_CreateSwapchainKHR(
 			IntPtr device,
-			VkSwapchainCreateInfoKHR* pCreateInfo,
+			ref VkSwapchainCreateInfoKHR pCreateInfo,
 			IntPtr pAllocator,
 			out ulong swapchain
 		);
-		private CreateSwapchainKHR vkCreateSwapchainKHR;
+		private PFN_CreateSwapchainKHR vkCreateSwapchainKHR;
 
-		private delegate void DestroySwapchainKHR(
+		private delegate void PFN_DestroySwapchainKHR(
 			IntPtr device,
 			ulong swapchain,
 			IntPtr pAllocator
 		);
-		private DestroySwapchainKHR vkDestroySwapchainKHR;
+		private PFN_DestroySwapchainKHR vkDestroySwapchainKHR;
 
-		private unsafe delegate VkResult GetSwapchainImagesKHR(
+		private unsafe delegate VkResult PFN_GetSwapchainImagesKHR(
 			IntPtr device,
 			ulong swapchain,
 			out uint pSwapchainImageCount,
 			ulong* pSwapchainImages
 		);
-		private GetSwapchainImagesKHR vkGetSwapchainImagesKHR;
+		private PFN_GetSwapchainImagesKHR vkGetSwapchainImagesKHR;
 
-		private unsafe delegate VkResult CreateGraphicsPipelines(
+		private unsafe delegate VkResult PFN_CreateGraphicsPipelines(
 			IntPtr device,
 			ulong pipelineCache,
 			uint createInfoCount,
@@ -3084,106 +3138,106 @@ namespace Microsoft.Xna.Framework.Graphics
 			IntPtr pAllocator,
 			ulong* pPipelines
 		);
-		private CreateGraphicsPipelines vkCreateGraphicsPipelines;
+		private PFN_CreateGraphicsPipelines vkCreateGraphicsPipelines;
 
-		private unsafe delegate VkResult CreatePipelineLayout(
+		private delegate VkResult PFN_CreatePipelineLayout(
 			IntPtr device,
-			VkPipelineLayoutCreateInfo* pCreateInfo,
+			ref VkPipelineLayoutCreateInfo pCreateInfo,
 			IntPtr pAllocator,
 			out ulong pipelineLayout
 		);
-		private CreatePipelineLayout vkCreatePipelineLayout;
+		private PFN_CreatePipelineLayout vkCreatePipelineLayout;
 
-		private unsafe delegate VkResult AllocateMemory(
+		private delegate VkResult PFN_AllocateMemory(
 			IntPtr device,
-			VkMemoryAllocateInfo* pAllocateInfo,
+			ref VkMemoryAllocateInfo pAllocateInfo,
 			IntPtr pAllocator,
 			out ulong memory
 		);
-		private AllocateMemory vkAllocateMemory;
+		private PFN_AllocateMemory vkAllocateMemory;
 
-		private delegate VkResult BindBufferMemory(
+		private delegate VkResult PFN_BindBufferMemory(
 			IntPtr device,
 			ulong buffer,
 			ulong memory,
 			ulong memoryOffset
 		);
-		private BindBufferMemory vkBindBufferMemory;
+		private PFN_BindBufferMemory vkBindBufferMemory;
 
-		private delegate VkResult BindImageMemory(
+		private delegate VkResult PFN_BindImageMemory(
 			IntPtr device,
 			ulong image,
 			ulong memory,
 			ulong memoryOffset
 		);
-		private BindImageMemory vkBindImageMemory;
+		private PFN_BindImageMemory vkBindImageMemory;
 
-		private unsafe delegate void CmdCopyBuffer(
+		private unsafe delegate void PFN_CmdCopyBuffer(
 			IntPtr commandBuffer,
 			ulong srcBuffer,
 			ulong dstBuffer,
 			uint regionCount,
 			VkBufferCopy* pRegions
 		);
-		private CmdCopyBuffer vkCmdCopyBuffer;
+		private PFN_CmdCopyBuffer vkCmdCopyBuffer;
 
-		private unsafe delegate VkResult CreateBuffer(
+		private delegate VkResult PFN_CreateBuffer(
 			IntPtr device,
-			VkBufferCreateInfo* pCreateInfo,
+			ref VkBufferCreateInfo pCreateInfo,
 			IntPtr pAllocator,
 			out ulong buffer
 		);
-		private CreateBuffer vkCreateBuffer;
+		private PFN_CreateBuffer vkCreateBuffer;
 
-		private delegate void DestroyBuffer(
+		private delegate void PFN_DestroyBuffer(
 			IntPtr device,
 			ulong buffer,
 			IntPtr pAllocator
 		);
-		private DestroyBuffer vkDestroyBuffer;
+		private PFN_DestroyBuffer vkDestroyBuffer;
 
-		private unsafe delegate VkResult FlushMappedMemoryRanges(
+		private unsafe delegate VkResult PFN_FlushMappedMemoryRanges(
 			IntPtr device,
 			uint memoryRangeCount,
 			VkMappedMemoryRange* pMemoryRanges
 		);
-		private FlushMappedMemoryRanges vkFlushMappedMemoryRanges;
+		private PFN_FlushMappedMemoryRanges vkFlushMappedMemoryRanges;
 
-		private delegate void FreeMemory(
+		private delegate void PFN_FreeMemory(
 			IntPtr device,
 			ulong memory,
 			IntPtr pAllocator
 		);
-		private FreeMemory vkFreeMemory;
+		private PFN_FreeMemory vkFreeMemory;
 
-		private delegate void GetBufferMemoryRequirements(
+		private delegate void PFN_GetBufferMemoryRequirements(
 			IntPtr device,
 			ulong buffer,
 			out VkMemoryRequirements memoryRequirements
 		);
-		private GetBufferMemoryRequirements vkGetBufferMemoryRequirements;
+		private PFN_GetBufferMemoryRequirements vkGetBufferMemoryRequirements;
 
-		private delegate void GetImageMemoryRequirements(
+		private delegate void PFN_GetImageMemoryRequirements(
 			IntPtr device,
 			ulong image,
 			out VkMemoryRequirements memoryRequirements
 		);
-		private GetImageMemoryRequirements vkGetImageMemoryRequirements;
+		private PFN_GetImageMemoryRequirements vkGetImageMemoryRequirements;
 
-		private delegate void GetPhysicalDeviceMemoryProperties(
+		private delegate void PFN_GetPhysicalDeviceMemoryProperties(
 			IntPtr physicalDevice,
 			out VkPhysicalDeviceMemoryProperties pMemoryProperties
 		);
-		private GetPhysicalDeviceMemoryProperties vkGetPhysicalDeviceMemoryProperties;
+		private PFN_GetPhysicalDeviceMemoryProperties vkGetPhysicalDeviceMemoryProperties;
 
-		private unsafe delegate VkResult InvalidateMappedMemoryRanges(
+		private unsafe delegate VkResult PFN_InvalidateMappedMemoryRanges(
 			IntPtr device,
 			uint memoryRangeCount,
 			VkMappedMemoryRange* pMemoryRanges
 		);
-		private InvalidateMappedMemoryRanges vkInvalidateMappedMemoryRanges;
+		private PFN_InvalidateMappedMemoryRanges vkInvalidateMappedMemoryRanges;
 
-		private unsafe delegate VkResult MapMemory(
+		private unsafe delegate VkResult PFN_MapMemory(
 			IntPtr device,
 			ulong memory,
 			ulong offset,
@@ -3191,131 +3245,131 @@ namespace Microsoft.Xna.Framework.Graphics
 			uint flags,
 			void** ppData
 		);
-		private MapMemory vkMapMemory;
+		private PFN_MapMemory vkMapMemory;
 
-		private delegate void UnmapMemory(
+		private delegate void PFN_UnmapMemory(
 			IntPtr device,
 			ulong memory
 		);
-		private UnmapMemory vkUnmapMemory;
+		private PFN_UnmapMemory vkUnmapMemory;
 
-		private unsafe delegate VkResult CreateFramebuffer(
+		private delegate VkResult PFN_CreateFramebuffer(
 			IntPtr device,
-			VkFramebufferCreateInfo* pCreateInfo,
+			ref VkFramebufferCreateInfo pCreateInfo,
 			IntPtr pAllocator,
 			out ulong framebuffer
 		);
-		private CreateFramebuffer vkCreateFramebuffer;
+		private PFN_CreateFramebuffer vkCreateFramebuffer;
 
-		private delegate void DestroyFramebuffer(
+		private delegate void PFN_DestroyFramebuffer(
 			IntPtr device,
 			ulong framebuffer,
 			IntPtr pAllocator
 		);
-		private DestroyFramebuffer vkDestroyFramebuffer;
+		private PFN_DestroyFramebuffer vkDestroyFramebuffer;
 
-		private unsafe delegate VkResult CreateRenderPass(
+		private delegate VkResult PFN_CreateRenderPass(
 			IntPtr device,
-			VkRenderPassCreateInfo* pCreateInfo,
+			ref VkRenderPassCreateInfo pCreateInfo,
 			IntPtr pAllocator,
 			out ulong renderPass
 		);
-		private CreateRenderPass vkCreateRenderPass;
+		private PFN_CreateRenderPass vkCreateRenderPass;
 
-		private delegate void DestroyRenderPass(
+		private delegate void PFN_DestroyRenderPass(
 			IntPtr device,
 			ulong renderPass,
 			IntPtr pAllocator
 		);
-		private DestroyRenderPass vkDestroyRenderPass;
+		private PFN_DestroyRenderPass vkDestroyRenderPass;
 
-		private unsafe delegate void CmdClearAttachments(
+		private unsafe delegate void PFN_CmdClearAttachments(
 			IntPtr commandBuffer,
 			uint attachmentCount,
 			VkClearAttachment* pAttachments,
 			uint rectCount,
 			VkClearRect* pRects
 		);
-		private CmdClearAttachments vkCmdClearAttachments;
+		private PFN_CmdClearAttachments vkCmdClearAttachments;
 
-		private unsafe delegate VkResult CreateCommandPool(
+		private delegate VkResult PFN_CreateCommandPool(
 			IntPtr device,
-			VkCommandPoolCreateInfo* pCreateInfo,
+			ref VkCommandPoolCreateInfo pCreateInfo,
 			IntPtr pAllocator,
 			out ulong pCommandPool
 		);
-		private CreateCommandPool vkCreateCommandPool;
+		private PFN_CreateCommandPool vkCreateCommandPool;
 
-		private unsafe delegate VkResult AllocateCommandBuffers(
+		private unsafe delegate VkResult PFN_AllocateCommandBuffers(
 			IntPtr device,
-			VkCommandBufferAllocateInfo* pAllocateInfo,
+			ref VkCommandBufferAllocateInfo pAllocateInfo,
 			IntPtr* pCommandBuffers
 		);
-		private AllocateCommandBuffers vkAllocateCommandBuffers;
+		private PFN_AllocateCommandBuffers vkAllocateCommandBuffers;
 
-		private unsafe delegate VkResult BeginCommandBuffer(
+		private delegate VkResult PFN_BeginCommandBuffer(
 			IntPtr commandBuffer,
-			VkCommandBufferBeginInfo* pBeginInfo
+			ref VkCommandBufferBeginInfo pBeginInfo
 		);
-		private BeginCommandBuffer vkBeginCommandBuffer;
+		private PFN_BeginCommandBuffer vkBeginCommandBuffer;
 
-		private unsafe delegate void CmdBeginRenderPass(
+		private delegate void PFN_CmdBeginRenderPass(
 			IntPtr commandBuffer,
-			VkRenderPassBeginInfo* pRenderPassBegin,
+			ref VkRenderPassBeginInfo pRenderPassBegin,
 			VkSubpassContents contents
 		);
-		private CmdBeginRenderPass vkCmdBeginRenderPass;
+		private PFN_CmdBeginRenderPass vkCmdBeginRenderPass;
 
-		private delegate void CmdEndRenderPass(
+		private delegate void PFN_CmdEndRenderPass(
 			IntPtr commandBuffer
 		);
-		private CmdEndRenderPass vkCmdEndRenderPass;
+		private PFN_CmdEndRenderPass vkCmdEndRenderPass;
 
-		private unsafe delegate VkResult QueueSubmit(
+		private unsafe delegate VkResult PFN_QueueSubmit(
 			IntPtr queue,
 			uint submitCount,
 			VkSubmitInfo* pSubmits,
 			ulong fence
 		);
-		private QueueSubmit vkQueueSubmit;
+		private PFN_QueueSubmit vkQueueSubmit;
 
-		private delegate VkResult ResetCommandBuffer(
+		private delegate VkResult PFN_ResetCommandBuffer(
 			IntPtr commandBuffer,
 			VkCommandBufferResetFlags flags
 		);
-		private ResetCommandBuffer vkResetCommandBuffer;
+		private PFN_ResetCommandBuffer vkResetCommandBuffer;
 
-		private delegate VkResult EndCommandBuffer(
+		private delegate VkResult PFN_EndCommandBuffer(
 			IntPtr commandBuffer
 		);
-		private EndCommandBuffer vkEndCommandBuffer;
+		private PFN_EndCommandBuffer vkEndCommandBuffer;
 
-		private unsafe delegate VkResult WaitForFences(
+		private unsafe delegate VkResult PFN_WaitForFences(
 			IntPtr device,
 			uint fenceCount,
 			ulong* pFences,
 			uint waitAll,
 			ulong timeout
 		);
-		private WaitForFences vkWaitForFences;
+		private PFN_WaitForFences vkWaitForFences;
 
-		private unsafe delegate VkResult CreateFence(
+		private delegate VkResult PFN_CreateFence(
 			IntPtr device,
-			VkFenceCreateInfo* pCreateInfo,
+			ref VkFenceCreateInfo pCreateInfo,
 			IntPtr allocator,
 			out ulong fence
 		);
-		private CreateFence vkCreateFence;
+		private PFN_CreateFence vkCreateFence;
 
-		private unsafe delegate VkResult CreateSemaphore(
+		private delegate VkResult PFN_CreateSemaphore(
 			IntPtr device,
-			VkSemaphoreCreateInfo* pCreateInfo,
+			ref VkSemaphoreCreateInfo pCreateInfo,
 			IntPtr pAllocator,
 			out ulong pSemaphore
 		);
-		private CreateSemaphore vkCreateSemaphore;
+		private PFN_CreateSemaphore vkCreateSemaphore;
 
-		private delegate VkResult AcquireNextImageKHR(
+		private delegate VkResult PFN_AcquireNextImageKHR(
 			IntPtr device,
 			ulong swapchain,
 			ulong timeout,
@@ -3323,15 +3377,15 @@ namespace Microsoft.Xna.Framework.Graphics
 			ulong fence,
 			out uint pImageIndex
 		);
-		private AcquireNextImageKHR vkAcquireNextImageKHR;
+		private PFN_AcquireNextImageKHR vkAcquireNextImageKHR;
 
-		private unsafe delegate VkResult QueuePresentKHR(
+		private delegate VkResult PFN_QueuePresentKHR(
 			IntPtr queue,
-			VkPresentInfoKHR* pPresentInfo
+			ref VkPresentInfoKHR pPresentInfo
 		);
-		private QueuePresentKHR vkQueuePresentKHR;
+		private PFN_QueuePresentKHR vkQueuePresentKHR;
 
-		private unsafe delegate void CmdBlitImage(
+		private unsafe delegate void PFN_CmdBlitImage(
 			IntPtr commandBuffer,
 			ulong srcImage,
 			VkImageLayout srcImageLayout,
@@ -3341,26 +3395,39 @@ namespace Microsoft.Xna.Framework.Graphics
 			VkImageBlit* pRegions,
 			VkFilter filter
 		);
-		private CmdBlitImage vkCmdBlitImage;
+		private PFN_CmdBlitImage vkCmdBlitImage;
 
-		private unsafe delegate VkResult CreateDebugUtilsMessengerEXT(
+		private delegate void PFN_CmdSetBlendConstants(
+			IntPtr commandBuffer,
+			float[] blendConstants
+		);
+		private PFN_CmdSetBlendConstants vkCmdSetBlendConstants;
+
+		private delegate void PFN_CmdSetStencilReference(
+			IntPtr commandBuffer,
+			VkStencilFaceFlags faceMask,
+			uint reference
+		);
+		private PFN_CmdSetStencilReference vkCmdSetStencilReference;
+
+		private delegate VkResult PFN_CreateDebugUtilsMessengerEXT(
 			IntPtr instance,
-			VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+			ref VkDebugUtilsMessengerCreateInfoEXT pCreateInfo,
 			IntPtr pAllocator,
 			out ulong pMessenger
 		);
-		private CreateDebugUtilsMessengerEXT vkCreateDebugUtilsMessengerEXT;
+		private PFN_CreateDebugUtilsMessengerEXT vkCreateDebugUtilsMessengerEXT;
 
-		private delegate VkResult DestroyDebugUtilsMessengerEXT(
+		private delegate VkResult PFN_DestroyDebugUtilsMessengerEXT(
 			IntPtr instance,
 			ulong messenger,
 			IntPtr pAllocator
 		);
-		private DestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT;
+		private PFN_DestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT;
 
 		#endregion
 
-		#region Private Delegates
+		#region Private Callback Delegates
 
 		private unsafe delegate uint PFN_vkDebugUtilsMessengerCallbackEXT(
 			VkDebugUtilsMessageSeverityFlagsEXT messageSeverity,

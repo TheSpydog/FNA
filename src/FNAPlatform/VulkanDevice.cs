@@ -51,10 +51,9 @@ namespace Microsoft.Xna.Framework.Graphics
 		#region Command Pools and Buffers
 
 		private ulong GraphicsCommandPool;
-		private ulong PresentCommandPool;
 
-		private IntPtr graphicsCommandBuffer;
-		private IntPtr presentCommandBuffer;
+		private IntPtr[] CommandBuffers;
+		private IntPtr currentCommandBuffer;
 
 		#endregion
 
@@ -96,13 +95,16 @@ namespace Microsoft.Xna.Framework.Graphics
 				if (value != blendColor)
 				{
 					blendColor = value;
-					// FIXME
-					//glBlendColor(
-					//	blendColor.R / 255.0f,
-					//	blendColor.G / 255.0f,
-					//	blendColor.B / 255.0f,
-					//	blendColor.A / 255.0f
-					//);
+					vkCmdSetBlendConstants(
+						currentCommandBuffer,
+						new float[]
+						{
+							blendColor.R / 255.0f,
+							blendColor.G / 255.0f,
+							blendColor.B / 255.0f,
+							blendColor.A / 255.0f
+						}
+					);
 				}
 			}
 		}
@@ -115,24 +117,13 @@ namespace Microsoft.Xna.Framework.Graphics
 			}
 			set
 			{
-				if (value != multisampleMask)
-				{
-					// FIXME
-					//if (value == -1)
-					//{
-					//	glDisable(GLenum.GL_SAMPLE_MASK);
-					//}
-					//else
-					//{
-					//	if (multisampleMask == -1)
-					//	{
-					//		glEnable(GLenum.GL_SAMPLE_MASK);
-					//	}
-					//	// FIXME: index...? -flibit
-					//	glSampleMaski(0, (uint)value);
-					//}
-					multisampleMask = value;
-				}
+				multisampleMask = value;
+
+				/* We don't need to do anything special here
+				 * since the multisample mask is only used
+				 * when creating a graphics pipeline.
+				 * -caleb
+				 */
 			}
 		}
 
@@ -173,30 +164,11 @@ namespace Microsoft.Xna.Framework.Graphics
 				if (value != stencilRef)
 				{
 					stencilRef = value;
-					// FIXME
-					//if (separateStencilEnable)
-					//{
-					//	glStencilFuncSeparate(
-					//		GLenum.GL_FRONT,
-					//		XNAToGL.CompareFunc[(int)stencilFunc],
-					//		stencilRef,
-					//		stencilMask
-					//	);
-					//	glStencilFuncSeparate(
-					//		GLenum.GL_BACK,
-					//		XNAToGL.CompareFunc[(int)ccwStencilFunc],
-					//		stencilRef,
-					//		stencilMask
-					//	);
-					//}
-					//else
-					//{
-					//	glStencilFunc(
-					//		XNAToGL.CompareFunc[(int)stencilFunc],
-					//		stencilRef,
-					//		stencilMask
-					//	);
-					//}
+					vkCmdSetStencilReference(
+						currentCommandBuffer,
+						VkStencilFaceFlags.VK_STENCIL_FACE_FRONT_AND_BACK,
+						(uint) stencilRef
+					);
 				}
 			}
 		}
@@ -240,7 +212,8 @@ namespace Microsoft.Xna.Framework.Graphics
 
 		#region Render Target Cache Variables
 
-		int maxAttachments;
+		private int maxAttachments;
+		private VKSwapchain currentSwapchain;
 		private VKFramebuffer currentFramebuffer;
 		private DepthFormat currentDepthStencilFormat;
 
@@ -286,29 +259,32 @@ namespace Microsoft.Xna.Framework.Graphics
 			PresentationParameters presentationParameters,
 			GraphicsAdapter adapter
 		) {
-			// Handle environment variables
+			// RenderDoc?
 			renderdocEnabled = Environment.GetEnvironmentVariable("FNA_VULKAN_ENABLE_RENDERDOC") == "1";
+
+			// Validation?
 			string validationEnv = Environment.GetEnvironmentVariable("FNA_VULKAN_ENABLE_VALIDATION");
 			validationEnabled = (validationEnv == "1" || validationEnv == "2");
 			verboseValidationEnabled = (validationEnv == "2");
 
+			// Grab the window handle for SDL's sake
+			IntPtr windowHandle = presentationParameters.DeviceWindowHandle;
+
 			// Initialize Vulkan
 			LoadGlobalEntryPoints();
-			CreateVulkanInstance(presentationParameters.DeviceWindowHandle);
+			CreateInstance(windowHandle);
 			LoadInstanceEntryPoints();
-			if (validationEnabled)
-			{
-				InitDebugMessenger();
-			}
-			CreateWindowSurface(presentationParameters.DeviceWindowHandle);
+			CreateDebugMessenger();
+			CreateWindowSurface(windowHandle);
 			SelectPhysicalDevice();
 			CreateLogicalDevice();
 			InitializeDynamicStateCreateInfo();
-			InitializeAllocator();
+			CreateAllocator();
 
-			// Generate the command pools
+			// Generate the command buffers
 			GraphicsCommandPool = GenCommandPool(graphicsQueueFamilyIndex);
-			PresentCommandPool = GenCommandPool(presentQueueFamilyIndex);
+			CommandBuffers = GenCommandBuffers(3, GraphicsCommandPool);
+			DeployCommandBuffer(0);
 
 			// Generate the semaphores
 			renderFinishedSemaphore = GenSemaphore();
@@ -342,8 +318,12 @@ namespace Microsoft.Xna.Framework.Graphics
 
 			/* Check the max multisample count, override parameters if necessary */
 			// FIXME: Is this right?
-			int colorSamples = GetSampleCount(deviceProperties.limits.framebufferColorSampleCounts);
-			int depthSamples = GetSampleCount(deviceProperties.limits.framebufferDepthSampleCounts);
+			int colorSamples = GetSampleCount(
+				deviceProperties.limits.framebufferColorSampleCounts
+			);
+			int depthSamples = GetSampleCount(
+				deviceProperties.limits.framebufferDepthSampleCounts
+			);
 			int maxSamples = Math.Min(colorSamples, depthSamples);
 			MaxMultiSampleCount = maxSamples;
 			presentationParameters.MultiSampleCount = Math.Min(
@@ -351,7 +331,7 @@ namespace Microsoft.Xna.Framework.Graphics
 				MaxMultiSampleCount
 			);
 
-			// Create the swapchain and faux-backbuffer
+			// Create the faux-backbuffer
 			Backbuffer = new VKBackbuffer(
 				this,
 				presentationParameters.BackBufferWidth,
@@ -367,13 +347,6 @@ namespace Microsoft.Xna.Framework.Graphics
 			);
 			currentFramebuffer = null;
 			currentDepthStencilFormat = DepthFormat.None;
-
-			// Create the graphics command buffer
-			GenGraphicsCommandBuffer();
-			ResetGraphicsCommandBuffer();
-
-			// FIXME: Just for testing...
-			//GetPipeline();
 		}
 
 		#endregion
@@ -418,7 +391,7 @@ namespace Microsoft.Xna.Framework.Graphics
 
 		#region Vulkan Initialization
 
-		private unsafe void CreateVulkanInstance(IntPtr windowHandle)
+		private unsafe void CreateInstance(IntPtr windowHandle)
 		{
 			// Describe app metadata
 			string appName = System.Reflection.Assembly.GetEntryAssembly().GetName().Name;
@@ -433,36 +406,33 @@ namespace Microsoft.Xna.Framework.Graphics
 				apiVersion = VK_MAKE_VERSION(1, 0, 0),
 			};
 
-			// Get all available instance extensions
-			uint availableExtensionCount;
-			vkEnumerateInstanceExtensionProperties(null, out availableExtensionCount, null);
-			VkExtensionProperties[] availableExtensions = new VkExtensionProperties[availableExtensionCount];
-			fixed (VkExtensionProperties* availableExtensionsPtr = availableExtensions)
-			{
-				vkEnumerateInstanceExtensionProperties(
-					null,
-					out availableExtensionCount,
-					availableExtensionsPtr
-				);
-			}
-
-			// Generate a list of all instance extensions we will use
-			List<IntPtr> extensions = new List<IntPtr>();
-
-			// SDL2 extensions
+			// How many extensions are required by SDL2?
 			uint sdlExtCount;
-			SDL.SDL_Vulkan_GetInstanceExtensions(windowHandle, out sdlExtCount, null);
-			IntPtr[] sdlExtensions = new IntPtr[sdlExtCount];
-			SDL.SDL_Vulkan_GetInstanceExtensions(windowHandle, out sdlExtCount, sdlExtensions);
-			extensions.AddRange(sdlExtensions);
+			SDL.SDL_Vulkan_GetInstanceExtensions(
+				windowHandle,
+				out sdlExtCount,
+				null
+			);
 
-			// Debug utility extensions
+			// Create an array to hold all the extensions we want
+			IntPtr[] extensions = new IntPtr[sdlExtCount + 1];
+			uint numExts = sdlExtCount;
+
+			// Add the SDL2 extensions to the array
+			SDL.SDL_Vulkan_GetInstanceExtensions(
+				windowHandle,
+				out sdlExtCount,
+				extensions
+			);
+
+			// Add VK_EXT_debug_utils if we can
 			if (validationEnabled)
 			{
 				string debugUtilsExt = "VK_EXT_debug_utils";
-				if (ExtensionSupported(debugUtilsExt, availableExtensions))
+				if (ExtensionSupported(debugUtilsExt, GetInstanceExtensions()))
 				{
-					extensions.Add(UTF8_ToNative(debugUtilsExt));
+					extensions[numExts] = UTF8_ToNative(debugUtilsExt);
+					numExts += 1;
 				}
 				else
 				{
@@ -471,32 +441,24 @@ namespace Microsoft.Xna.Framework.Graphics
 				}
 			}
 
-			// Get all available validation layers
-			uint availableLayerCount;
-			vkEnumerateInstanceLayerProperties(out availableLayerCount, null);
-			VkLayerProperties[] availableLayers = new VkLayerProperties[availableLayerCount];
-			fixed (VkLayerProperties* availableLayersPtr = availableLayers)
-			{
-				vkEnumerateInstanceLayerProperties(
-					out availableLayerCount,
-					availableLayersPtr
-				);
-			}
+			// Create an array to hold all the validation layers we want
+			IntPtr[] layers = new IntPtr[2];
+			uint numLayers = 0;
 
-			// Generate a list of all validation layers we will use
-			List<IntPtr> layers = new List<IntPtr>();
 			if (renderdocEnabled)
 			{
 				string renderdocLayerName = "VK_LAYER_RENDERDOC_Capture";
-				if (LayerSupported(renderdocLayerName, availableLayers))
+				if (LayerSupported(renderdocLayerName, GetInstanceLayers()))
 				{
-					layers.Add(UTF8_ToNative(renderdocLayerName));
+					layers[numLayers] = UTF8_ToNative(renderdocLayerName);
+					numLayers += 1;
 				}
 				else
 				{
 					FNALoggerEXT.LogWarn(renderdocLayerName + " not supported!");
 				}
 			}
+
 			if (validationEnabled)
 			{
 				/* No need to check if the layer is supported.
@@ -504,10 +466,11 @@ namespace Microsoft.Xna.Framework.Graphics
 				 * exists so the layer must as well.
 				 * -caleb
 				 */
-				layers.Add(UTF8_ToNative("VK_LAYER_KHRONOS_validation"));
+				layers[numLayers] = UTF8_ToNative("VK_LAYER_KHRONOS_validation");
+				numLayers += 1;
 			}
 
-			// Validate the instance creation/destruction, if needed
+			// Validate the instance creation/destruction if needed
 			VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
 			IntPtr pNext = IntPtr.Zero;
 			if (validationEnabled)
@@ -516,47 +479,31 @@ namespace Microsoft.Xna.Framework.Graphics
 				pNext = (IntPtr) (&debugCreateInfo);
 			}
 
-			// Create the Vulkan instance
-			VkInstanceCreateInfo appCreateInfo;
-			IntPtr[] extensionsArray = extensions.ToArray();
-			IntPtr[] layersArray = layers.ToArray();
-			fixed (IntPtr* extNamesPtr = extensionsArray)
-			{
-				fixed (IntPtr* layerNamesPtr = layersArray)
-				{
-					appCreateInfo = new VkInstanceCreateInfo
-					{
-						sType = VkStructureType.VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-						pNext = pNext,
-						flags = 0,
-						pApplicationInfo = &appInfo,
-						enabledLayerCount = (uint) layersArray.Length,
-						ppEnabledLayerNames = layerNamesPtr,
-						enabledExtensionCount = (uint) extensionsArray.Length,
-						ppEnabledExtensionNames = extNamesPtr
-					};
-				}
-			}
-			VkResult res = vkCreateInstance(&appCreateInfo, IntPtr.Zero, out Instance);
-			if (res != VkResult.VK_SUCCESS)
-			{
-				throw new Exception("Could not create Vulkan Instance! Error: " + res);
-			}
-		}
+			// Pin the arrays
+			GCHandle extsPinned = GCHandle.Alloc(extensions, GCHandleType.Pinned);
+			GCHandle layersPinned = GCHandle.Alloc(layers, GCHandleType.Pinned);
 
-		private unsafe void InitDebugMessenger()
-		{
-			VkDebugUtilsMessengerCreateInfoEXT createInfo = CreateDebugMessengerCreateInfo();
-			VkResult res = vkCreateDebugUtilsMessengerEXT(
-				Instance,
-				&createInfo,
-				IntPtr.Zero,
-				out DebugMessenger
-			);
-			if (res != VkResult.VK_SUCCESS)
+			// Create the Vulkan instance
+			VkInstanceCreateInfo appCreateInfo = new VkInstanceCreateInfo
 			{
-				throw new Exception("Could not initialize debug messenger! Error: " + res);
-			}
+				sType = VkStructureType.VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+				pNext = pNext,
+				flags = 0,
+				pApplicationInfo = &appInfo,
+				enabledLayerCount = numLayers,
+				ppEnabledLayerNames = layersPinned.AddrOfPinnedObject(),
+				enabledExtensionCount = numExts,
+				ppEnabledExtensionNames = extsPinned.AddrOfPinnedObject()
+			};
+			vkCreateInstance(
+				ref appCreateInfo,
+				IntPtr.Zero,
+				out Instance
+			);
+
+			// Free the arrays
+			extsPinned.Free();
+			layersPinned.Free();
 		}
 
 		private void CreateWindowSurface(IntPtr window)
@@ -572,15 +519,40 @@ namespace Microsoft.Xna.Framework.Graphics
 			}
 		}
 
+		private void CreateDebugMessenger()
+		{
+			if (!validationEnabled)
+			{
+				return;
+			}
+
+			VkDebugUtilsMessengerCreateInfoEXT createInfo =
+				CreateDebugMessengerCreateInfo();
+			vkCreateDebugUtilsMessengerEXT(
+				Instance,
+				ref createInfo,
+				IntPtr.Zero,
+				out DebugMessenger
+			);
+		}
+
 		private unsafe void SelectPhysicalDevice()
 		{
 			// Get all physical devices
 			uint physicalDeviceCount;
-			vkEnumeratePhysicalDevices(Instance, out physicalDeviceCount, null);
+			vkEnumeratePhysicalDevices(
+				Instance,
+				out physicalDeviceCount,
+				null
+			);
 			IntPtr[] physicalDevices = new IntPtr[physicalDeviceCount];
 			fixed (IntPtr* physicalDevicesPtr = physicalDevices)
 			{
-				vkEnumeratePhysicalDevices(Instance, out physicalDeviceCount, physicalDevicesPtr);
+				vkEnumeratePhysicalDevices(
+					Instance,
+					out physicalDeviceCount,
+					physicalDevicesPtr
+				);
 			}
 
 			/* To find the ideal physical device, each GPU is assigned
@@ -726,11 +698,14 @@ namespace Microsoft.Xna.Framework.Graphics
 			 * queue and use it for both purposes. If not, we'll need
 			 * to make a second queue just for presenting.
 			 */
-			bool differentPresentationQueue = (graphicsQueueFamilyIndex != presentQueueFamilyIndex);
+			bool differentPresentationQueue = (
+				graphicsQueueFamilyIndex != presentQueueFamilyIndex
+			);
 			uint queueCount = (differentPresentationQueue) ? 2u : 1u;
 
 			// Create a list of queue CreateInfo's
-			VkDeviceQueueCreateInfo[] queueCreateInfos = new VkDeviceQueueCreateInfo[queueCount];
+			VkDeviceQueueCreateInfo[] queueCreateInfos =
+				new VkDeviceQueueCreateInfo[queueCount];
 
 			// Create the graphics queue CreateInfo
 			float priority = 1.0f;
@@ -795,14 +770,19 @@ namespace Microsoft.Xna.Framework.Graphics
 			}
 
 			// Create the device!
-			vkCreateDevice(PhysicalDevice, &deviceCreateInfo, IntPtr.Zero, out Device);
+			vkCreateDevice(
+				PhysicalDevice,
+				ref deviceCreateInfo,
+				IntPtr.Zero,
+				out Device
+			);
 
 			// Store handles to the graphics and presentation queues
 			vkGetDeviceQueue(Device, graphicsQueueFamilyIndex, 0, out GraphicsQueue);
 			vkGetDeviceQueue(Device, presentQueueFamilyIndex, 0, out PresentationQueue);
 		}
 
-		private unsafe void InitializeAllocator()
+		private unsafe void CreateAllocator()
 		{
 			VMA.VmaDeviceMemoryCallbacks callbacks = new VMA.VmaDeviceMemoryCallbacks
 			{
@@ -869,6 +849,7 @@ namespace Microsoft.Xna.Framework.Graphics
 				)
 			};
 
+			// Create the allocator!
 			VMA.VmaAllocatorCreateInfo createInfo = new VMA.VmaAllocatorCreateInfo
 			{
 				flags = 0,
@@ -882,68 +863,16 @@ namespace Microsoft.Xna.Framework.Graphics
 				pVulkanFunctions = (IntPtr) (&vkFuncs),
 				pRecordSettings = IntPtr.Zero
 			};
-
-			// Create the allocator!
-			int res = VMA.vmaCreateAllocator(
-				(IntPtr) (&createInfo),
+			VkResult res = (VkResult) VMA.vmaCreateAllocator(
+				ref createInfo,
 				out Allocator
 			);
-			if (res != 0)
-			{
-				throw new Exception("Could not create allocator! Error: " + ((VkResult) res));
-			}
-		}
-
-		private unsafe ulong GenCommandPool(uint queueFamilyIndex)
-		{
-			ulong pool;
-
-			VkCommandPoolCreateInfo createInfo = new VkCommandPoolCreateInfo
-			{
-				sType = VkStructureType.VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-				pNext = IntPtr.Zero,
-				flags = VkCommandPoolCreateFlags.VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-				queueFamilyIndex = queueFamilyIndex
-			};
-			
-			VkResult res = vkCreateCommandPool(
-				Device,
-				&createInfo,
-				IntPtr.Zero,
-				out pool
-			);
 			if (res != VkResult.VK_SUCCESS)
 			{
-				throw new Exception("Could not create command pool!");
+				throw new Exception(
+					"Could not create allocator! Error: " + res
+				);
 			}
-
-			return pool;
-		}
-
-		// FIXME: Clean this up
-		private unsafe ulong GenSemaphore()
-		{
-			VkSemaphoreCreateInfo createInfo = new VkSemaphoreCreateInfo
-			{
-				sType = VkStructureType.VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
-				pNext = IntPtr.Zero,
-				flags = 0
-			};
-
-			// Create the imageAvailableSemaphore
-			ulong result;
-			VkResult res = vkCreateSemaphore(
-				Device,
-				&createInfo,
-				IntPtr.Zero,
-				out result
-			);
-			if (res != VkResult.VK_SUCCESS)
-			{
-				throw new Exception("Could not create semaphore! Error: " + res);
-			}
-
-			return result;
 		}
 
 		#endregion
@@ -1003,7 +932,111 @@ namespace Microsoft.Xna.Framework.Graphics
 
 		#endregion
 
+		#region Generator Methods
+
+		private IntPtr[] GenCommandBuffers(int count, ulong pool)
+		{
+			IntPtr[] buffers = new IntPtr[count];
+			VkCommandBufferAllocateInfo cmdBufAlloc = new VkCommandBufferAllocateInfo
+			{
+				sType = VkStructureType.VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+				pNext = IntPtr.Zero,
+				commandPool = pool,
+				level = VkCommandBufferLevel.VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+				commandBufferCount = (uint) count,
+			};
+			unsafe
+			{
+				fixed (IntPtr* bufsPtr = buffers)
+				{
+					vkAllocateCommandBuffers(
+						Device,
+						ref cmdBufAlloc,
+						bufsPtr
+					);
+				}
+			}
+			return buffers;
+		}
+
+		private ulong GenCommandPool(uint queueFamilyIndex)
+		{
+			ulong pool;
+			VkCommandPoolCreateInfo createInfo = new VkCommandPoolCreateInfo
+			{
+				sType = VkStructureType.VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+				pNext = IntPtr.Zero,
+				flags = 0,
+				queueFamilyIndex = queueFamilyIndex
+			};
+			vkCreateCommandPool(
+				Device,
+				ref createInfo,
+				IntPtr.Zero,
+				out pool
+			);
+			return pool;
+		}
+
+		private ulong GenSemaphore()
+		{
+			ulong semaphore;
+			VkSemaphoreCreateInfo createInfo = new VkSemaphoreCreateInfo
+			{
+				sType = VkStructureType.VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+				pNext = IntPtr.Zero,
+				flags = 0
+			};
+			vkCreateSemaphore(
+				Device,
+				ref createInfo,
+				IntPtr.Zero,
+				out semaphore
+			);
+			return semaphore;
+		}
+
+		#endregion
+
 		#region Private Vulkan Helper Methods
+
+		private unsafe VkExtensionProperties[] GetInstanceExtensions()
+		{
+			uint extCount;
+			vkEnumerateInstanceExtensionProperties(
+				null,
+				out extCount,
+				null
+			);
+			VkExtensionProperties[] exts = new VkExtensionProperties[extCount];
+			fixed (VkExtensionProperties* extsPtr = exts)
+			{
+				vkEnumerateInstanceExtensionProperties(
+					null,
+					out extCount,
+					extsPtr
+				);
+			}
+			return exts;
+		}
+
+		private unsafe VkLayerProperties[] GetInstanceLayers()
+		{
+			uint layerCount;
+			vkEnumerateInstanceLayerProperties(
+				out layerCount,
+				null
+			);
+			VkLayerProperties[] layers = new VkLayerProperties[layerCount];
+			fixed (VkLayerProperties* layersPtr = layers)
+			{
+				vkEnumerateInstanceLayerProperties(
+					out layerCount,
+					layersPtr
+				);
+			}
+			return layers;
+		}
 
 		private string GetDriverDeviceName(VkPhysicalDeviceProperties properties)
 		{
@@ -1120,7 +1153,7 @@ namespace Microsoft.Xna.Framework.Graphics
 			);
 			return	formatProperties.optimalTilingFeatures != 0 ||
 				formatProperties.linearTilingFeatures != 0 ||
-				formatProperties.bufferFeatures == 0;
+				formatProperties.bufferFeatures != 0;
 		}
 
 		private unsafe bool SurfaceFormatSupported(
@@ -1167,6 +1200,7 @@ namespace Microsoft.Xna.Framework.Graphics
 		) {
 			foreach (VkExtensionProperties ext in extensions)
 			{
+				// extensionName is a fixed-size byte*
 				if (UTF8_ToManaged((IntPtr) ext.extensionName) == extName)
 				{
 					return true;
@@ -1259,56 +1293,33 @@ namespace Microsoft.Xna.Framework.Graphics
 			int queueFamilyIndex
 		) {
 			uint supportsPresentation = 0;
-			VkResult res = vkGetPhysicalDeviceSurfaceSupportKHR(
+			vkGetPhysicalDeviceSurfaceSupportKHR(
 				physicalDevice,
 				(uint) queueFamilyIndex,
 				WindowSurface,
 				out supportsPresentation
 			);
-			if (res != VkResult.VK_SUCCESS)
-			{
-				throw new Exception(
-					"Could not query queue family presentation capability! Error: " + res
-				);
-			}
 			return (supportsPresentation == 1);
 		}
 
-		private unsafe void GenGraphicsCommandBuffer()
-		{
-			VkCommandBufferAllocateInfo cmdBufAlloc = new VkCommandBufferAllocateInfo
-			{
-				sType = VkStructureType.VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-				pNext = IntPtr.Zero,
-				commandPool = GraphicsCommandPool,
-				level = VkCommandBufferLevel.VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-				commandBufferCount = 1,
-			};
-			fixed (IntPtr* bufPtr = &graphicsCommandBuffer)
-			{
-				vkAllocateCommandBuffers(
-					Device,
-					&cmdBufAlloc,
-					bufPtr
-				);
-			}
-		}
+		#endregion
 
-		private unsafe void ResetGraphicsCommandBuffer()
-		{
-			vkResetCommandBuffer(
-				graphicsCommandBuffer,
-				VkCommandBufferResetFlags.VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT
-			);
+		#region Frame Lifecycle Methods
 
+		private unsafe void DeployCommandBuffer(int index)
+		{
 			VkCommandBufferBeginInfo beginInfo = new VkCommandBufferBeginInfo
 			{
 				sType = VkStructureType.VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
 				pNext = IntPtr.Zero,
-				flags = VkCommandBufferUsageFlags.VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+				flags = 0,
 				pInheritanceInfo = null
 			};
-			vkBeginCommandBuffer(graphicsCommandBuffer, &beginInfo);
+			vkBeginCommandBuffer(
+				CommandBuffers[index],
+				ref beginInfo
+			);
+			currentCommandBuffer = CommandBuffers[index];
 		}
 
 		private unsafe void BeginRenderPass()
@@ -1337,8 +1348,8 @@ namespace Microsoft.Xna.Framework.Graphics
 			};
 
 			vkCmdBeginRenderPass(
-				graphicsCommandBuffer,
-				&beginInfo,
+				currentCommandBuffer,
+				ref beginInfo,
 				VkSubpassContents.VK_SUBPASS_CONTENTS_INLINE
 			);
 		}
@@ -1449,18 +1460,12 @@ namespace Microsoft.Xna.Framework.Graphics
 					};
 
 					ulong fbo;
-					VkResult res = vkDevice.vkCreateFramebuffer(
+					vkDevice.vkCreateFramebuffer(
 						vkDevice.Device,
-						&fboCreateInfo,
+						ref fboCreateInfo,
 						IntPtr.Zero,
 						out fbo
 					);
-					if (res != VkResult.VK_SUCCESS)
-					{
-						throw new Exception(
-							"Could not create framebuffer! Error: " + res
-						);
-					}
 
 					Handle = fbo;
 				}
@@ -1536,7 +1541,11 @@ namespace Microsoft.Xna.Framework.Graphics
 					// FIXME: What should this be?
 					pResolveAttachments = null,
 
-					pDepthStencilAttachment = &depthStencilAttachmentRef,
+					pDepthStencilAttachment = (
+						(DepthStencilAttachment != null)
+						? (&depthStencilAttachmentRef)
+						: null
+					),
 
 					// FIXME: What should these be?
 					preserveAttachmentCount = 0,
@@ -1569,7 +1578,7 @@ namespace Microsoft.Xna.Framework.Graphics
 					dstSubpass = VK_SUBPASS_EXTERNAL,
 
 					srcStageMask = VkPipelineStageFlags.VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-					dstStageMask = VkPipelineStageFlags.VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+					dstStageMask = VkPipelineStageFlags.VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
 
 					srcAccessMask = (
 						VkAccessFlags.VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
@@ -1599,18 +1608,13 @@ namespace Microsoft.Xna.Framework.Graphics
 				};
 
 				ulong renderPass;
-				VkResult res = vkDevice.vkCreateRenderPass(
+				vkDevice.vkCreateRenderPass(
 					vkDevice.Device,
-					&passCreateInfo,
+					ref passCreateInfo,
 					IntPtr.Zero,
 					out renderPass
 				);
-				if (res != VkResult.VK_SUCCESS)
-				{
-					throw new Exception("Could not create render pass! Error: " + res);
-				}
 
-				// Make it official
 				RenderPass = renderPass;
 
 				// Clean up
@@ -1658,7 +1662,6 @@ namespace Microsoft.Xna.Framework.Graphics
 			VkDynamicState.VK_DYNAMIC_STATE_BLEND_CONSTANTS,
 			VkDynamicState.VK_DYNAMIC_STATE_DEPTH_BIAS,
 			VkDynamicState.VK_DYNAMIC_STATE_DEPTH_BOUNDS,
-			VkDynamicState.VK_DYNAMIC_STATE_SAMPLE_LOCATIONS_EXT,
 			VkDynamicState.VK_DYNAMIC_STATE_SCISSOR,
 			VkDynamicState.VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK,
 			VkDynamicState.VK_DYNAMIC_STATE_STENCIL_REFERENCE,
@@ -1906,16 +1909,12 @@ namespace Microsoft.Xna.Framework.Graphics
 				pushConstantRangeCount = 0,
 				pPushConstantRanges = null
 			};
-			VkResult res = vkCreatePipelineLayout(
+			vkCreatePipelineLayout(
 				Device,
-				&layoutCreateInfo,
+				ref layoutCreateInfo,
 				IntPtr.Zero,
 				out pipeline.layout
 			);
-			if (res != VkResult.VK_SUCCESS)
-			{
-				throw new Exception("Could not create pipeline layout! Error: " + res);
-			}
 
 			// FIXME: Specify compatible render pass
 			pipeline.renderPass = 0;
@@ -1929,7 +1928,7 @@ namespace Microsoft.Xna.Framework.Graphics
 
 			// Bake the pipeline
 			ulong bakedPipeline;
-			res = vkCreateGraphicsPipelines(
+			vkCreateGraphicsPipelines(
 				Device,
 				0, // FIXME: Do we want a VkPipelineCache?
 				1,
@@ -1937,10 +1936,6 @@ namespace Microsoft.Xna.Framework.Graphics
 				IntPtr.Zero,
 				&bakedPipeline
 			);
-			if (res != VkResult.VK_SUCCESS)
-			{
-				throw new Exception("Could not create graphics pipeline! Error: " + res);
-			}
 
 			// Clean up the pinned objects
 			attributesPin.Free();
@@ -2138,7 +2133,7 @@ namespace Microsoft.Xna.Framework.Graphics
 				if (res != (int) VkResult.VK_SUCCESS)
 				{
 					throw new Exception(
-						"Could not create texture! Error: " + (VkResult) res
+						"Could not create image! Error: " + (VkResult) res
 					);
 				}
 
@@ -2162,24 +2157,69 @@ namespace Microsoft.Xna.Framework.Graphics
 						layerCount = 1
 					}
 				};
-				res = (int) vkDevice.vkCreateImageView(
+				vkDevice.vkCreateImageView(
 					vkDevice.Device,
-					&viewCreateInfo,
+					ref viewCreateInfo,
 					IntPtr.Zero,
 					out viewHandle
 				);
-				if (res != (int) VkResult.VK_SUCCESS)
-				{
-					throw new Exception(
-						"Could not create image view! Error: " + (VkResult) res
-					);
-				}
 
 				// Set the public properties
 				Handle = viewHandle;
 				ImageHandle = imageHandle;
 				Allocation = alloc;
 				HasMipmaps = levelCount > 1;
+			}
+
+			// Special constructor for swapchain images
+			public VKRenderbuffer(
+				VulkanDevice vkDevice,
+				VkFormat format,
+				int width,
+				int height,
+				ulong image
+			) {
+				this.vkDevice = vkDevice;
+				Format = format;
+				Width = width;
+				Height = height;
+
+				isDepthStencil = false;
+				preserveContents = false;
+
+				// Create an image view
+				VkImageViewCreateInfo createInfo = new VkImageViewCreateInfo
+				{
+					sType = VkStructureType.VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+					pNext = IntPtr.Zero,
+					flags = 0,
+					format = format,
+					image = image,
+					viewType = VkImageViewType.VK_IMAGE_VIEW_TYPE_2D,
+					components = VkComponentMapping.Identity,
+					subresourceRange = new VkImageSubresourceRange
+					{
+						aspectMask = VkImageAspectFlags.VK_IMAGE_ASPECT_COLOR_BIT,
+						baseMipLevel = 0,
+						levelCount = 1,
+						baseArrayLayer = 0,
+						layerCount = 1
+					}
+				};
+				ulong viewHandle;
+				vkDevice.vkCreateImageView(
+					vkDevice.Device,
+					ref createInfo,
+					IntPtr.Zero,
+					out viewHandle
+				);
+
+				// Set the public properties
+				Handle = viewHandle;
+				ImageHandle = image;
+				Allocation = IntPtr.Zero;
+				HasMipmaps = false;
+				SampleCount = 1;
 			}
 
 			public void Dispose()
@@ -2190,11 +2230,14 @@ namespace Microsoft.Xna.Framework.Graphics
 					IntPtr.Zero
 				);
 
-				VMA.vmaDestroyImage(
-					vkDevice.Allocator,
-					ImageHandle,
-					Allocation
-				);
+				if (Allocation != IntPtr.Zero)
+				{
+					VMA.vmaDestroyImage(
+						vkDevice.Allocator,
+						ImageHandle,
+						Allocation
+					);
+				}
 
 				ImageHandle = 0;
 				Handle = 0;
@@ -2241,28 +2284,34 @@ namespace Microsoft.Xna.Framework.Graphics
 						: VkAttachmentStoreOp.VK_ATTACHMENT_STORE_OP_DONT_CARE
 					),
 
-					initialLayout = VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED,
-					finalLayout = (
+					initialLayout = (
 						isDepthStencil
-						? VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL //FIXME: DEPTH_STENCIL_ATTACHMENT_OPTIMAL
-						: VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL //FIXME: COLOR_ATTACHMENT_OPTIMAL
-					)
+						? VkImageLayout.VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+						: VkImageLayout.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+					),
+					finalLayout = VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
 				};
 			}
 		}
 
 		#endregion
 
-		#region Faux-Backbuffer / Swapchain
+		#region Swapchain Container Class
 
-		public IGLBackbuffer Backbuffer
+		private class VKSwapchain
 		{
-			get;
-			private set;
-		}
+			public ulong Handle
+			{
+				get;
+				private set;
+			}
 
-		private class VKBackbuffer : IGLBackbuffer
-		{
+			public VKFramebuffer[] Framebuffers
+			{
+				get;
+				private set;
+			}
+
 			public int Width
 			{
 				get;
@@ -2275,104 +2324,21 @@ namespace Microsoft.Xna.Framework.Graphics
 				private set;
 			}
 
-			public DepthFormat DepthFormat
-			{
-				get;
-				private set;
-			}
-
-			public int MultiSampleCount
-			{
-				get;
-				private set;
-			}
-
-			public ulong SwapchainHandle
-			{
-				get;
-				private set;
-			}
-
-			public ulong[] SwapchainImages
-			{
-				get;
-				private set;
-			}
-
-			public VKRenderbuffer ColorAttachment
-			{
-				get;
-				private set;
-			}
-
-			public VKRenderbuffer DepthStencilAttachment
-			{
-				get;
-				private set;
-			}
-
 			private VulkanDevice vkDevice;
+			private SurfaceFormat format = SurfaceFormat.Color;
+			private VKRenderbuffer[] attachments;
 			private VkPresentModeKHR[] supportedPresentModes;
-			private SurfaceFormat colorFormat;
 
-			private ulong oldSwapchain;
-
-			private VKFramebuffer framebuffer;
-
-			public VKBackbuffer(
-				VulkanDevice device,
+			public unsafe VKSwapchain(
+				VulkanDevice vkDevice,
 				int width,
 				int height,
-				DepthFormat depthFormat,
-				int multiSampleCount
+				PresentInterval presentInterval,
+				ulong oldSwapchain
 			) {
-				vkDevice = device;
-				Width = width;
-				Height = height;
-				DepthFormat = depthFormat;
-				MultiSampleCount = multiSampleCount;
-
-				colorFormat = SurfaceFormat.Color;
-
+				this.vkDevice = vkDevice;
 				CacheSupportedPresentModes();
-			}
 
-			private unsafe void CacheSupportedPresentModes()
-			{
-				uint numPresentModes;
-				vkDevice.vkGetPhysicalDeviceSurfacePresentModesKHR(
-					vkDevice.PhysicalDevice,
-					vkDevice.WindowSurface,
-					out numPresentModes,
-					null
-				);
-				supportedPresentModes = new VkPresentModeKHR[numPresentModes];
-				fixed (VkPresentModeKHR* presentModesPtr = supportedPresentModes)
-				{
-					vkDevice.vkGetPhysicalDeviceSurfacePresentModesKHR(
-						vkDevice.PhysicalDevice,
-						vkDevice.WindowSurface,
-						out numPresentModes,
-						presentModesPtr
-					);
-				}
-			}
-
-			private bool PresentModeSupported(VkPresentModeKHR mode)
-			{
-				foreach (VkPresentModeKHR presentMode in supportedPresentModes)
-				{
-					if (presentMode == mode)
-					{
-						return true;
-					}
-				}
-
-				return false;
-			}
-
-			private unsafe void GenSwapchain(PresentInterval presentInterval)
-			{
 				// Fill out basic properties of the swapchain
 				VkSwapchainCreateInfoKHR createInfo = new VkSwapchainCreateInfoKHR();
 				createInfo.sType = VkStructureType.VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -2390,25 +2356,25 @@ namespace Microsoft.Xna.Framework.Graphics
 
 				// Determine how many images to request
 				uint imageCount = surfaceCapabilities.minImageCount + 1;
-				if (	surfaceCapabilities.maxImageCount > 0 &&
-					imageCount > surfaceCapabilities.maxImageCount	)
+				if (surfaceCapabilities.maxImageCount > 0 &&
+					imageCount > surfaceCapabilities.maxImageCount)
 				{
 					imageCount = surfaceCapabilities.maxImageCount;
 				}
 				createInfo.minImageCount = imageCount;
 
 				// Specify the swapchain image format
-				createInfo.imageFormat = XNAToVK.SurfaceFormat[(int) colorFormat];
+				createInfo.imageFormat = XNAToVK.SurfaceFormat[(int) format];
 				createInfo.imageColorSpace = VkColorSpaceKHR.VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
 
 				// Bound the size of swapchain images to the surface's supported limits
 				int imageWidth = MathHelper.Clamp(
-					Width,
+					width,
 					(int) surfaceCapabilities.minImageExtent.width,
 					(int) surfaceCapabilities.maxImageExtent.width
 				);
 				int imageHeight = MathHelper.Clamp(
-					Height,
+					height,
 					(int) surfaceCapabilities.maxImageExtent.height,
 					(int) surfaceCapabilities.minImageExtent.height
 				);
@@ -2485,68 +2451,175 @@ namespace Microsoft.Xna.Framework.Graphics
 				createInfo.clipped = 1;
 
 				// FIXME: I suspect there's more to it than this...
-				createInfo.oldSwapchain = SwapchainHandle;
-				oldSwapchain = SwapchainHandle;
+				createInfo.oldSwapchain = oldSwapchain;
 
-				// Create the new swapchain!
+				// Create the swapchain!
 				ulong newSwapchain;
-				VkResult res = vkDevice.vkCreateSwapchainKHR(
+				vkDevice.vkCreateSwapchainKHR(
 					vkDevice.Device,
-					&createInfo,
+					ref createInfo,
 					IntPtr.Zero,
 					out newSwapchain
 				);
-				if (res != VkResult.VK_SUCCESS)
-				{
-					throw new Exception("Could not generate swapchain! Error: " + res);
-				}
-
-				SwapchainHandle = newSwapchain;
+				Handle = newSwapchain;
 
 				// Get the swapchain images
-				uint numSwapchainImages;
+				uint numImages;
 				vkDevice.vkGetSwapchainImagesKHR(
 					vkDevice.Device,
-					SwapchainHandle,
-					out numSwapchainImages,
+					Handle,
+					out numImages,
 					null
 				);
-				ulong[] images = new ulong[numSwapchainImages];
+				ulong[] images = new ulong[numImages];
 				fixed (ulong* imagesPtr = images)
 				{
 					vkDevice.vkGetSwapchainImagesKHR(
 						vkDevice.Device,
-						SwapchainHandle,
-						out numSwapchainImages,
+						Handle,
+						out numImages,
 						imagesPtr
 					);
 				}
 
-				SwapchainImages = images;
-				Console.WriteLine("Created " + SwapchainImages.Length + "images!");
+				// Create the image views and framebuffers
+				VKRenderbuffer[] attachments = new VKRenderbuffer[numImages];
+				Framebuffers = new VKFramebuffer[numImages];
+				for (int i = 0; i < numImages; i += 1)
+				{
+					attachments[i] = new VKRenderbuffer(
+						vkDevice,
+						XNAToVK.SurfaceFormat[(int) format],
+						Width,
+						Height,
+						images[i]
+					);
+
+					Framebuffers[i] = new VKFramebuffer(
+						vkDevice,
+						new VKRenderbuffer[] { attachments[i] },
+						null
+					);
+				}
 
 				// Clean up
 				indicesPinned.Free();
+			}
 
-				/* !!! FIXME !!!
-				 * To correctly transition the image layouts,
-				 * we need to make a framebuffer for the
-				 * swapchain images themselves!
-				 */
+			private unsafe void CacheSupportedPresentModes()
+			{
+				uint numPresentModes;
+				vkDevice.vkGetPhysicalDeviceSurfacePresentModesKHR(
+					vkDevice.PhysicalDevice,
+					vkDevice.WindowSurface,
+					out numPresentModes,
+					null
+				);
+				supportedPresentModes = new VkPresentModeKHR[numPresentModes];
+				fixed (VkPresentModeKHR* presentModesPtr = supportedPresentModes)
+				{
+					vkDevice.vkGetPhysicalDeviceSurfacePresentModesKHR(
+						vkDevice.PhysicalDevice,
+						vkDevice.WindowSurface,
+						out numPresentModes,
+						presentModesPtr
+					);
+				}
+			}
+
+			private bool PresentModeSupported(VkPresentModeKHR mode)
+			{
+				foreach (VkPresentModeKHR presentMode in supportedPresentModes)
+				{
+					if (presentMode == mode)
+					{
+						return true;
+					}
+				}
+
+				return false;
+			}
+		}
+
+		#endregion
+
+		#region Faux-Backbuffer
+
+		public IGLBackbuffer Backbuffer
+		{
+			get;
+			private set;
+		}
+
+		private class VKBackbuffer : IGLBackbuffer
+		{
+			public int Width
+			{
+				get;
+				private set;
+			}
+
+			public int Height
+			{
+				get;
+				private set;
+			}
+
+			public DepthFormat DepthFormat
+			{
+				get;
+				private set;
+			}
+
+			public int MultiSampleCount
+			{
+				get;
+				private set;
+			}
+
+			public VKFramebuffer Framebuffer
+			{
+				get;
+				private set;
+			}
+
+			private VulkanDevice vkDevice;
+			private SurfaceFormat colorFormat;
+			private ulong oldSwapchainHandle;
+
+			public VKBackbuffer(
+				VulkanDevice device,
+				int width,
+				int height,
+				DepthFormat depthFormat,
+				int multiSampleCount
+			) {
+				vkDevice = device;
+				Width = width;
+				Height = height;
+				DepthFormat = depthFormat;
+				MultiSampleCount = multiSampleCount;
 			}
 
 			public void ResetFramebuffer(
 				PresentationParameters presentationParameters
 			) {
-				// FIXME: Need to handle detatching/freeing old resources
-				GenSwapchain(presentationParameters.PresentationInterval);
+				// Create a new swapchain
+				vkDevice.currentSwapchain = new VKSwapchain(
+					vkDevice,
+					Width,
+					Height,
+					presentationParameters.PresentationInterval,
+					oldSwapchainHandle
+				);
+				oldSwapchainHandle = vkDevice.currentSwapchain.Handle;
 
 				// Create the color buffer image/view
 				VkImageUsageFlags colorUsageFlags = (
 					VkImageUsageFlags.VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
 					VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_SRC_BIT
 				);
-				ColorAttachment = new VKRenderbuffer(
+				VKRenderbuffer colorAttachment = new VKRenderbuffer(
 					vkDevice,
 					XNAToVK.SurfaceFormat[(int) colorFormat],
 					Width,
@@ -2569,7 +2642,7 @@ namespace Microsoft.Xna.Framework.Graphics
 					// We don't always need a stencil, but when we do...
 					aspectFlags |= VkImageAspectFlags.VK_IMAGE_ASPECT_STENCIL_BIT;
 				}
-				DepthStencilAttachment = new VKRenderbuffer(
+				VKRenderbuffer depthStencilAttachment = new VKRenderbuffer(
 					vkDevice,
 					XNAToVK.DepthFormat[(int) DepthFormat],
 					Width,
@@ -2582,17 +2655,17 @@ namespace Microsoft.Xna.Framework.Graphics
 				);
 
 				// Create the framebuffer
-				framebuffer = new VKFramebuffer(
+				Framebuffer = new VKFramebuffer(
 					vkDevice,
-					new VKRenderbuffer[] { ColorAttachment },
-					DepthStencilAttachment
+					new VKRenderbuffer[] { colorAttachment },
+					depthStencilAttachment
 				);
 
 				// If this is the first run, perform initialization tasks
 				if (vkDevice.currentFramebuffer == null)
 				{
 					// Default to this framebuffer.
-					vkDevice.currentFramebuffer = framebuffer;
+					vkDevice.currentFramebuffer = Framebuffer;
 					vkDevice.currentDepthStencilFormat = DepthFormat;
 
 					// Set initial render pass
@@ -2602,15 +2675,8 @@ namespace Microsoft.Xna.Framework.Graphics
 
 			public void Dispose()
 			{
-				// Destroy the framebuffer and attachments
-				framebuffer.Dispose();
-
-				// Destroy the swapchain itself
-				vkDevice.vkDestroySwapchainKHR(
-					vkDevice.Device,
-					SwapchainHandle,
-					IntPtr.Zero
-				);
+				// Destroy the framebuffer
+				Framebuffer.Dispose();
 			}
 		}
 
@@ -2765,7 +2831,7 @@ namespace Microsoft.Xna.Framework.Graphics
 					fixed (VkClearRect* rects = clearRects)
 					{
 						vkCmdClearAttachments(
-							graphicsCommandBuffer,
+							currentCommandBuffer,
 							numCleared,
 							attachments,
 							numCleared,
@@ -2966,18 +3032,25 @@ namespace Microsoft.Xna.Framework.Graphics
 			Console.WriteLine("SWAP");
 
 			// End the render pass
-			vkCmdEndRenderPass(graphicsCommandBuffer);
+			vkCmdEndRenderPass(currentCommandBuffer);
 
 			// Get the next swapchain image
 			uint imageIndex;
 			vkAcquireNextImageKHR(
 				Device,
-				(Backbuffer as VKBackbuffer).SwapchainHandle,
+				currentSwapchain.Handle,
 				ulong.MaxValue,
 				imageAvailableSemaphore,
 				0,
 				out imageIndex
 			);
+
+			/* Perform an empty render pass for the swapchain
+			 * so its image format gets converted correctly.
+			 */
+			currentFramebuffer = currentSwapchain.Framebuffers[imageIndex];
+			//BeginRenderPass();
+			//vkCmdEndRenderPass(currentCommandBuffer);
 
 			// Blit the backbuffer to the swapchain image
 			VkImageBlit region = new VkImageBlit
@@ -3004,10 +3077,10 @@ namespace Microsoft.Xna.Framework.Graphics
 				dstOffsets_1 = new VkOffset3D { x = 100, y = 100, z = 1 }
 			};
 			vkCmdBlitImage(
-				graphicsCommandBuffer,
-				currentFramebuffer.ColorAttachments[0].ImageHandle,
+				currentCommandBuffer,
+				(Backbuffer as VKBackbuffer).Framebuffer.ColorAttachments[0].ImageHandle,
 				VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-				(Backbuffer as VKBackbuffer).SwapchainImages[imageIndex],
+				currentSwapchain.Framebuffers[imageIndex].ColorAttachments[0].ImageHandle,
 				VkImageLayout.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 				1,
 				&region,
@@ -3015,11 +3088,7 @@ namespace Microsoft.Xna.Framework.Graphics
 			);
 
 			// End command buffer recording
-			VkResult res = vkEndCommandBuffer(graphicsCommandBuffer);
-			if (res != VkResult.VK_SUCCESS)
-			{
-				throw new Exception("Failed to end command buffer! Error: " + res);
-			}
+			vkEndCommandBuffer(currentCommandBuffer);
 
 			// Prepare for submission
 			uint[] flags =
@@ -3039,19 +3108,9 @@ namespace Microsoft.Xna.Framework.Graphics
 				GCHandleType.Pinned
 			);
 			GCHandle cmdBufPinned = GCHandle.Alloc(
-				graphicsCommandBuffer,
+				currentCommandBuffer,
 				GCHandleType.Pinned
 			);
-
-			// Create the synchronization fence to wait on the command buffer
-			ulong fence;
-			VkFenceCreateInfo fenceCreateInfo = new VkFenceCreateInfo
-			{
-				sType = VkStructureType.VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-				pInfo = IntPtr.Zero,
-				flags = 0
-			};
-			vkCreateFence(Device, &fenceCreateInfo, IntPtr.Zero, out fence);
 
 			// Submit the command buffer
 			VkSubmitInfo submitInfo = new VkSubmitInfo
@@ -3066,28 +3125,15 @@ namespace Microsoft.Xna.Framework.Graphics
 				signalSemaphoreCount = 1,
 				pSignalSemaphores = (ulong*) renderFinishedSemPinned.AddrOfPinnedObject()
 			};
-			res = vkQueueSubmit(
+			vkQueueSubmit(
 				GraphicsQueue,
 				1,
 				&submitInfo,
-				fence
+				0
 			);
-			if (res != VkResult.VK_SUCCESS)
-			{
-				throw new Exception("Could not submit queue! Error: " + res);
-			}
-
-			// Wait for the submission to be completed...
-			res = vkWaitForFences(Device, 1, &fence, 1, ulong.MaxValue);
-			if (res != VkResult.VK_SUCCESS)
-			{
-				throw new Exception(
-					"Error waiting for fence! Error: " + res
-				);
-			}
 
 			// Present the swapchain image!
-			ulong swapchainHandle = (Backbuffer as VKBackbuffer).SwapchainHandle;
+			ulong swapchainHandle = currentSwapchain.Handle;
 			VkPresentInfoKHR presentInfo = new VkPresentInfoKHR
 			{
 				sType = VkStructureType.VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
@@ -3099,14 +3145,10 @@ namespace Microsoft.Xna.Framework.Graphics
 				pImageIndices = &imageIndex,
 				pResults = null
 			};
-			res = vkQueuePresentKHR(
+			vkQueuePresentKHR(
 				PresentationQueue,
-				&presentInfo
+				ref presentInfo
 			);
-			if (res != VkResult.VK_SUCCESS)
-			{
-				throw new Exception("Error presenting image! Error: " + res);
-			}
 
 			// Free pinned objects
 			flagsPinned.Free();
@@ -3115,7 +3157,8 @@ namespace Microsoft.Xna.Framework.Graphics
 			cmdBufPinned.Free();
 
 			// Begin anew~
-			ResetGraphicsCommandBuffer();
+			//ResetGraphicsCommandBuffer();
+			DeployCommandBuffer(((int) imageIndex + 1) % CommandBuffers.Length);
 			BeginRenderPass();
 		}
 
