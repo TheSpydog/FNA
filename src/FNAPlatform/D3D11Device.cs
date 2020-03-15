@@ -250,13 +250,16 @@ namespace Microsoft.Xna.Framework.Graphics
 		private void InitializeFauxBackbuffer(
 			PresentationParameters presentationParameters
 		) {
-			Console.WriteLine("Init faux backbuffer!");
 			D3D11Backbuffer backbuffer = new D3D11Backbuffer(
 				this,
 				presentationParameters
 			);
 			Backbuffer = backbuffer;
 			backbuffer.CreateFramebuffer(presentationParameters);
+			D3D11_InitializeFauxBackbuffer(
+				ctx,
+				Environment.GetEnvironmentVariable("FNA_GRAPHICS_BACKBUFFER_SCALE_NEAREST") == "1"
+			);
 		}
 
 		public void AddDisposeEffect(IGLEffect effect)
@@ -635,8 +638,6 @@ namespace Microsoft.Xna.Framework.Graphics
 				float sw = (dstRect.Width / (float) dw) * 2;
 				float sh = (dstRect.Height / (float) dh) * 2;
 
-				Console.WriteLine(sx + ", " + sy + ", " + sw + ", " + sh);
-
 				// Update the vertex buffer contents
 				float[] data = new float[]
 				{
@@ -648,7 +649,7 @@ namespace Microsoft.Xna.Framework.Graphics
 				GCHandle handle = GCHandle.Alloc(data, GCHandleType.Pinned);
 				D3D11_SetFauxBackbufferData(
 					ctx,
-					handle.AddrOfPinnedObject(),
+					Marshal.UnsafeAddrOfPinnedArrayElement(data, 0),
 					sizeof(float) * data.Length
 				);
 				handle.Free();
@@ -746,6 +747,12 @@ namespace Microsoft.Xna.Framework.Graphics
 			IntPtr pContext,
 			Rectangle srcRect,
 			Rectangle dstRect
+		);
+
+		[DllImport(nativeLib)]
+		private static extern int D3D11_InitializeFauxBackbuffer(
+			IntPtr pContext,
+			bool scaleNearest
 		);
 
 		[DllImport(nativeLib)]
