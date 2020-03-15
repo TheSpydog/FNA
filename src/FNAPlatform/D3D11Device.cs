@@ -641,10 +641,10 @@ namespace Microsoft.Xna.Framework.Graphics
 				// Update the vertex buffer contents
 				float[] data = new float[]
 				{
-					sx, sy,	0, 1,		0, 0,
-					sx, sy + sh, 0, 1,	0, 1,
-					sx + sw, sy + sh, 0, 1,	1, 1,
-					sx + sw, sy, 0, 1,	1, 0
+					sx, sy,			0, 0,
+					sx + sw, sy,		1, 0,
+					sx + sw, sy + sh,	1, 1,
+					sx, sy + sh,		0, 1
 				};
 				GCHandle handle = GCHandle.Alloc(data, GCHandleType.Pinned);
 				D3D11_SetFauxBackbufferData(
