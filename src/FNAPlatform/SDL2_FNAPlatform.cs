@@ -51,6 +51,7 @@ namespace Microsoft.Xna.Framework
 		private const string THREADEDGL = "ThreadedGLDevice";
 		private const string METAL = "MetalDevice";
 		private const string VULKAN = "VulkanDevice";
+		private const string D3D11 = "D3D11Device";
 
 		#endregion
 
@@ -260,6 +261,23 @@ namespace Microsoft.Xna.Framework
 			return false;
 		}
 
+		private static bool PrepareD3D11Attributes()
+		{
+			if (	String.IsNullOrEmpty(ForcedGLDevice) ||
+				!ForcedGLDevice.Equals(D3D11)		)
+			{
+				return false;
+			}
+
+			if (!OSVersion.Equals("Windows") && !OSVersion.Equals("WinRT"))
+			{
+				return false;
+			}
+
+			// FIXME: Make this more robust!
+			return true;
+		}
+
 		private static bool PrepareMTLAttributes()
 		{
 			if (	String.IsNullOrEmpty(ForcedGLDevice) ||
@@ -449,7 +467,7 @@ namespace Microsoft.Xna.Framework
 				"FNA_GRAPHICS_FORCE_GLDEVICE"
 			);
 
-			bool vulkan = false, metal = false, opengl = false;
+			bool vulkan = false, metal = false, d3d11 = false, opengl = false;
 			if (vulkan = PrepareVKAttributes())
 			{
 				initFlags |= SDL.SDL_WindowFlags.SDL_WINDOW_VULKAN;
@@ -461,6 +479,13 @@ namespace Microsoft.Xna.Framework
 
 				// Metal doesn't require a window flag
 				ActualGLDevice = METAL;
+			}
+			else if (d3d11 = PrepareD3D11Attributes())
+			{
+				SDL.SDL_SetHint(SDL.SDL_HINT_VIDEO_EXTERNAL_CONTEXT, "1");
+
+				// DirectX doesn't require a window flag
+				ActualGLDevice = D3D11;
 			}
 			else if (opengl = PrepareGLAttributes())
 			{
@@ -537,6 +562,12 @@ namespace Microsoft.Xna.Framework
 			else if (metal)
 			{
 				MetalDevice.GetDrawableSizeFromView(tempContext, out drawX, out drawY);
+			}
+			else if (d3d11)
+			{
+				// FIXME
+				drawX = 0;
+				drawY = 0;
 			}
 			else if (opengl)
 			{
@@ -1331,6 +1362,8 @@ namespace Microsoft.Xna.Framework
 			case VULKAN:	break; // Maybe some day!
 			case METAL:
 				return new MetalDevice(presentationParameters, adapter);
+			case D3D11:
+				return new D3D11Device(presentationParameters, adapter);
 			case MODERNGL:
 				// FIXME: This is still experimental! -flibit
 				return new ModernGLDevice(presentationParameters, adapter);
