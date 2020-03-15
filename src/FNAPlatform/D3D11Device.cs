@@ -64,7 +64,6 @@ namespace Microsoft.Xna.Framework.Graphics
 			public IntPtr DepthStencilView = IntPtr.Zero;
 
 			private D3D11Device device;
-			private IntPtr ctx;
 
 			public D3D11Backbuffer(
 				D3D11Device d3dDevice,
@@ -78,7 +77,7 @@ namespace Microsoft.Xna.Framework.Graphics
 			public void Dispose()
 			{
 				D3D11_DisposeBackbuffer(
-					ctx,
+					device.ctx,
 					ref ColorBuffer,
 					ref ColorView,
 					ref MultiSampleColorBuffer,
@@ -577,9 +576,85 @@ namespace Microsoft.Xna.Framework.Graphics
 			D3D11_SetViewport(ctx, vp);
 		}
 
-		public void SwapBuffers(Rectangle? sourceRectangle, Rectangle? destinationRectangle, IntPtr overrideWindowHandle)
-		{
-			D3D11_SwapBuffers(ctx);
+		// FIXME: Move this!
+		Rectangle fauxBackbufferDestBounds;
+		bool fauxBackbufferSizeChanged;
+		IntPtr fauxBackbufferDrawBuffer;
+
+		public void SwapBuffers(
+			Rectangle? sourceRectangle,
+			Rectangle? destinationRectangle,
+			IntPtr overrideWindowHandle
+		) {
+			// Determine the regions to present
+			Rectangle srcRect;
+			Rectangle dstRect;
+			if (sourceRectangle.HasValue)
+			{
+				srcRect.X = sourceRectangle.Value.X;
+				srcRect.Y = sourceRectangle.Value.Y;
+				srcRect.Width = sourceRectangle.Value.Width;
+				srcRect.Height = sourceRectangle.Value.Height;
+			}
+			else
+			{
+				srcRect.X = 0;
+				srcRect.Y = 0;
+				srcRect.Width = Backbuffer.Width;
+				srcRect.Height = Backbuffer.Height;
+			}
+			if (destinationRectangle.HasValue)
+			{
+				dstRect.X = destinationRectangle.Value.X;
+				dstRect.Y = destinationRectangle.Value.Y;
+				dstRect.Width = destinationRectangle.Value.Width;
+				dstRect.Height = destinationRectangle.Value.Height;
+			}
+			else
+			{
+				dstRect.X = 0;
+				dstRect.Y = 0;
+				SDL.SDL_GetWindowSize(
+					overrideWindowHandle,
+					out dstRect.Width,
+					out dstRect.Height
+				);
+			}
+
+			// Update cached vertex buffer if needed
+			if (fauxBackbufferDestBounds != dstRect || fauxBackbufferSizeChanged)
+			{
+				fauxBackbufferDestBounds = dstRect;
+				fauxBackbufferSizeChanged = false;
+
+				// Scale the coordinates to (-1, 1)
+				int dw, dh;
+				SDL.SDL_GetWindowSize(overrideWindowHandle, out dw, out dh);
+				float sx = -1 + (dstRect.X / (float) dw);
+				float sy = -1 + (dstRect.Y / (float) dh);
+				float sw = (dstRect.Width / (float) dw) * 2;
+				float sh = (dstRect.Height / (float) dh) * 2;
+
+				Console.WriteLine(sx + ", " + sy + ", " + sw + ", " + sh);
+
+				// Update the vertex buffer contents
+				float[] data = new float[]
+				{
+					sx, sy,	0, 1,		0, 0,
+					sx, sy + sh, 0, 1,	0, 1,
+					sx + sw, sy + sh, 0, 1,	1, 1,
+					sx + sw, sy, 0, 1,	1, 0
+				};
+				GCHandle handle = GCHandle.Alloc(data, GCHandleType.Pinned);
+				D3D11_SetFauxBackbufferData(
+					ctx,
+					handle.AddrOfPinnedObject(),
+					sizeof(float) * data.Length
+				);
+				handle.Free();
+			}
+
+			D3D11_SwapBuffers(ctx, srcRect, dstRect);
 		}
 
 		public void VerifySampler(int index, Texture texture, SamplerState sampler)
@@ -668,7 +743,16 @@ namespace Microsoft.Xna.Framework.Graphics
 
 		[DllImport(nativeLib)]
 		private static extern void D3D11_SwapBuffers(
-			IntPtr pContext
+			IntPtr pContext,
+			Rectangle srcRect,
+			Rectangle dstRect
+		);
+
+		[DllImport(nativeLib)]
+		private static extern void D3D11_SetFauxBackbufferData(
+			IntPtr pContext,
+			IntPtr pData,
+			int dataLen
 		);
 	}
 }
