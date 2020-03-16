@@ -98,7 +98,10 @@ namespace Microsoft.Xna.Framework.Graphics
 				// Update the backbuffer size
 				int newWidth = presentationParameters.BackBufferWidth;
 				int newHeight = presentationParameters.BackBufferHeight;
-				// FIXME: Do we need to do anything about this...?
+				if (Width != newWidth || Height != newHeight)
+				{
+					device.fauxBackbufferSizeChanged = true;
+				}
 				Width = newWidth;
 				Height = newHeight;
 
@@ -118,11 +121,18 @@ namespace Microsoft.Xna.Framework.Graphics
 					hwnd = wmInfo.info.win.window;
 				}
 
+				int windowWidth, windowHeight;
+				SDL.SDL_GetWindowSize(
+					presentationParameters.DeviceWindowHandle,
+					out windowWidth,
+					out windowHeight
+				);
+
 				D3D11_CreateFramebuffer(
 					device.ctx,
 					hwnd,
-					Width,
-					Height,
+					windowWidth,
+					windowHeight,
 					DepthFormat,
 					MultiSampleCount,
 					out ColorBuffer,
@@ -464,9 +474,13 @@ namespace Microsoft.Xna.Framework.Graphics
 			throw new NotImplementedException();
 		}
 
-		public void ResetBackbuffer(PresentationParameters presentationParameters, GraphicsAdapter adapter)
-		{
-			throw new NotImplementedException();
+		public void ResetBackbuffer(
+			PresentationParameters presentationParameters,
+			GraphicsAdapter adapter
+		) {
+			Backbuffer.ResetFramebuffer(
+				presentationParameters
+			);
 		}
 
 		public void ResolveTarget(RenderTargetBinding target)
@@ -582,7 +596,6 @@ namespace Microsoft.Xna.Framework.Graphics
 		// FIXME: Move this!
 		Rectangle fauxBackbufferDestBounds;
 		bool fauxBackbufferSizeChanged;
-		IntPtr fauxBackbufferDrawBuffer;
 
 		public void SwapBuffers(
 			Rectangle? sourceRectangle,
@@ -624,6 +637,11 @@ namespace Microsoft.Xna.Framework.Graphics
 				);
 			}
 
+			// Get window client bounds
+			// FIXME: Can we cache this?
+			int dw, dh;
+			SDL.SDL_GetWindowSize(overrideWindowHandle, out dw, out dh);
+
 			// Update cached vertex buffer if needed
 			if (fauxBackbufferDestBounds != dstRect || fauxBackbufferSizeChanged)
 			{
@@ -631,8 +649,6 @@ namespace Microsoft.Xna.Framework.Graphics
 				fauxBackbufferSizeChanged = false;
 
 				// Scale the coordinates to (-1, 1)
-				int dw, dh;
-				SDL.SDL_GetWindowSize(overrideWindowHandle, out dw, out dh);
 				float sx = -1 + (dstRect.X / (float) dw);
 				float sy = -1 + (dstRect.Y / (float) dh);
 				float sw = (dstRect.Width / (float) dw) * 2;
@@ -655,6 +671,10 @@ namespace Microsoft.Xna.Framework.Graphics
 				handle.Free();
 			}
 
+			// Ensure the viewport covers the whole screen
+			SetViewport(new Viewport(0, 0, dw, dh));
+
+			// Swap!
 			D3D11_SwapBuffers(ctx, srcRect, dstRect);
 		}
 
