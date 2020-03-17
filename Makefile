@@ -118,6 +118,7 @@ SRC = \
 	src/DisplayOrientation.cs \
 	src/DrawableGameComponent.cs \
 	src/FNALoggerEXT.cs \
+	src/FNAPlatform/D3D11Device.cs \
 	src/FNAPlatform/FNAPlatform.cs \
 	src/FNAPlatform/FNAWindow.cs \
 	src/FNAPlatform/IGLDevice.cs \

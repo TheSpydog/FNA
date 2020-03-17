@@ -135,7 +135,6 @@
 		<Compile Include="src\DrawableGameComponent.cs" />
 		<Compile Include="src\FNALoggerEXT.cs" />
 		<Compile Include="src\FNAPlatform\D3D11Device.cs" />
-		<Compile Include="src\FNAPlatform\D3D11Device_DX.cs" />
 		<Compile Include="src\FNAPlatform\FNAPlatform.cs" />
 		<Compile Include="src\FNAPlatform\FNAWindow.cs" />
 		<Compile Include="src\FNAPlatform\IGLDevice.cs" />

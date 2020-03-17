@@ -17,7 +17,7 @@ using SDL2;
 
 namespace Microsoft.Xna.Framework.Graphics
 {
-	internal partial class D3D11Device : IGLDevice
+	internal class D3D11Device : IGLDevice
 	{
 		private class D3D11Texture : IGLTexture
 		{
